@@ -1,0 +1,24 @@
+{
+  "name": "platos-backend",
+  "version": "1.0.0",
+  "description": "Backend para generador de platos alimenticios",
+  "main": "src/server.js",
+  "scripts": {
+    "start": "node src/server.js",
+    "dev": "nodemon src/server.js",
+    "init-db": "node init-db.js"
+  },
+  "dependencies": {
+    "express": "^4.18.2",
+    "cors": "^2.8.5",
+    "sqlite3": "^5.1.6",
+    "better-sqlite3": "^8.4.0",
+    "dotenv": "^16.3.1"
+  },
+  "devDependencies": {
+    "nodemon": "^3.0.1"
+  },
+  "keywords": ["platos", "alimentos", "nutricion"],
+  "author": "Tu Nombre",
+  "license": "MIT"
+}
