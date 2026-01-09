@@ -9,14 +9,27 @@ app.use((req, res, next) => {
     next();
 });
 
+// IMPORTANTE: Servir archivos estáticos PRIMERO
+app.use(express.static(path.join(__dirname, '..', '..', 'frontend')));
+
+// Configurar middleware para JSON
+app.use(express.json());
+
+// Configurar CORS para permitir todas las solicitudes
+app.use((req, res, next) => {
+    res.header('Access-Control-Allow-Origin', '*');
+    res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept');
+    next();
+});
+
 // Datos de la base de datos integrados en el código
 const grupos = [
-    { id: 1, nombre: 'Grupo 1' },
-    { id: 2, nombre: 'Grupo 2' },
-    { id: 3, nombre: 'Grupo 3' },
-    { id: 4, nombre: 'Grupo 4' },
-    { id: 5, nombre: 'Grupo 5' },
-    { id: 6, nombre: 'Grupo 6' }
+    { id: 1, nombre: 'Grupo 1: Lácteos' },
+    { id: 2, nombre: 'Grupo 2: Proteínas' },
+    { id: 3, nombre: 'Grupo 3: Frutas' },
+    { id: 4, nombre: 'Grupo 4: Cereales' },
+    { id: 5, nombre: 'Grupo 5: Verduras' },
+    { id: 6, nombre: 'Grupo 6: Grasas' }
 ];
 
 const tiempos = [
@@ -219,27 +232,19 @@ function getAlimentoAleatorio(grupoId) {
         return null;
     }
     const alimento = alimentos[Math.floor(Math.random() * alimentos.length)];
-    console.log(`  🔍 Grupo ${grupoId}: "${alimento}"`);
     return alimento;
 }
 
 // Función para generar plato
 function generarPlato(tiempoId) {
-    console.log(`\n🍽️  GENERANDO PLATO para ${tiempos.find(t => t.id === tiempoId)?.nombre}`);
-    console.log(`📊 Porciones configuradas:`, porcionesTiempo[tiempoId]);
-    
     const tiempo = tiempos.find(t => t.id === tiempoId);
     const porciones = porcionesTiempo[tiempoId] || [];
     const plato = [];
     
-    console.log(`🔍 Procesando ${porciones.length} grupos...`);
-    
     for (const porcion of porciones) {
         // Si es Grupo 1, aplicar sustitución aleatoria
         if (porcion.grupo_id === 1) {
-            console.log(`🔄 Aplicando sustitución para Grupo 1`);
             const sustitucion = sustituciones[Math.floor(Math.random() * sustituciones.length)];
-            console.log(`   📋 Sustitución: ${sustitucion.descripcion}`);
             
             for (let i = 0; i < sustitucion.grupos.length; i++) {
                 const grupoId = sustitucion.grupos[i];
@@ -251,9 +256,8 @@ function generarPlato(tiempoId) {
                         alimento: alimento,
                         porcion: `${sustitucion.porciones[i]} porción`,
                         es_sustitucion: true,
-                        sustituye_a: 'Grupo 1'
+                        sustituye_a: 'Grupo 1: Lácteos'
                     });
-                    console.log(`   ✅ Sustituido: Grupo ${grupoId} - ${alimento}`);
                 }
             }
         } else {
@@ -270,13 +274,9 @@ function generarPlato(tiempoId) {
                     porcion: porcionTexto,
                     es_sustitucion: false
                 });
-                console.log(`   ✅ Agregado: ${grupo.nombre} - ${alimento} (${porcionTexto})`);
             }
         }
     }
-    
-    console.log(`✅ Plato generado con ${plato.length} alimentos`);
-    console.log(`📋 Alimentos:`, plato.map(p => p.alimento.substring(0, 30) + '...'));
     
     return {
         tiempo_comida: tiempo.nombre,
@@ -286,52 +286,33 @@ function generarPlato(tiempoId) {
     };
 }
 
-// Configurar Express
-app.use(express.json());
-
-// IMPORTANTE: CORREGIR RUTA DE ARCHIVOS ESTÁTICOS
-// Para estructura: platos-app-desktop/backend/src/server.js
-// frontend está en: platos-app-desktop/frontend/
-app.use(express.static(path.join(__dirname, '..', '..', 'frontend')));
-
-// Configurar CORS para permitir todas las solicitudes
-app.use((req, res, next) => {
-    res.header('Access-Control-Allow-Origin', '*');
-    res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept');
-    next();
-});
-
-// Rutas
+// Rutas API
 app.get('/api/tiempos', (req, res) => {
-    console.log(`📋 GET /api/tiempos - Enviando ${tiempos.length} tiempos`);
+    console.log(`[API] GET /api/tiempos`);
     res.json(tiempos);
 });
 
 app.get('/api/plato/generar', (req, res) => {
     const tiempoId = parseInt(req.query.tiempo) || 1;
-    
-    console.log(`\n🎲 GET /api/plato/generar?tiempo=${tiempoId}`);
-    console.log(`⏰ Tiempo solicitado: ${tiempos.find(t => t.id === tiempoId)?.nombre}`);
+    console.log(`[API] GET /api/plato/generar?tiempo=${tiempoId}`);
     
     if (tiempoId < 1 || tiempoId > 3) {
-        console.log(`❌ Error: Tiempo ${tiempoId} inválido`);
         return res.status(400).json({ error: 'Tiempo debe ser 1, 2 o 3' });
     }
     
     const plato = generarPlato(tiempoId);
-    console.log(`📤 Enviando plato con ${plato.plato.length} alimentos`);
     res.json(plato);
 });
 
 app.get('/api/plato/aleatorio', (req, res) => {
     const tiempoId = Math.floor(Math.random() * 3) + 1;
-    console.log(`\n🎲 GET /api/plato/aleatorio - Tiempo aleatorio: ${tiempos.find(t => t.id === tiempoId)?.nombre}`);
+    console.log(`[API] GET /api/plato/aleatorio - Tiempo aleatorio: ${tiempoId}`);
     const plato = generarPlato(tiempoId);
     res.json(plato);
 });
 
 app.get('/api/estadisticas', (req, res) => {
-    console.log(`📊 GET /api/estadisticas`);
+    console.log(`[API] GET /api/estadisticas`);
     const totalComidas = Object.values(comidas).reduce((acc, arr) => acc + arr.length, 0);
     const stats = {
         total_comidas: totalComidas,
@@ -339,13 +320,12 @@ app.get('/api/estadisticas', (req, res) => {
         total_tiempos: tiempos.length,
         total_sustituciones: sustituciones.length
     };
-    console.log(`📈 Estadísticas:`, stats);
     res.json(stats);
 });
 
 // Ruta para verificar el servidor
 app.get('/api/health', (req, res) => {
-    console.log(`❤️ GET /api/health - Servidor funcionando`);
+    console.log(`[API] GET /api/health`);
     res.json({ 
         status: 'ok', 
         message: 'Servidor funcionando correctamente',
@@ -356,28 +336,26 @@ app.get('/api/health', (req, res) => {
 // Ruta para ver datos de grupos
 app.get('/api/grupos/:id/comidas', (req, res) => {
     const grupoId = parseInt(req.params.id);
-    console.log(`🍎 GET /api/grupos/${grupoId}/comidas`);
+    console.log(`[API] GET /api/grupos/${grupoId}/comidas`);
     
     if (grupoId < 1 || grupoId > 6) {
         return res.status(400).json({ error: 'ID de grupo inválido' });
     }
     
     const alimentos = comidas[grupoId] || [];
-    console.log(`📦 Enviando ${alimentos.length} alimentos del grupo ${grupoId}`);
     res.json(alimentos);
 });
 
-// Ruta principal - SERVIR index.html DESDE LA UBICACIÓN CORRECTA
+// Ruta principal - debe ir DESPUÉS de las rutas API
 app.get('/', (req, res) => {
-    console.log(`🏠 GET / - Sirviendo página principal`);
-    console.log(`🔍 Buscando index.html en: ${path.join(__dirname, '..', '..', 'frontend', 'index.html')}`);
+    console.log(`[WEB] GET / - Sirviendo página principal`);
     res.sendFile(path.join(__dirname, '..', '..', 'frontend', 'index.html'));
 });
 
 // Ruta para cualquier otra petición
 app.get('*', (req, res) => {
-    console.log(`🔍 GET ${req.url} - Ruta no encontrada, redirigiendo a /`);
-    res.redirect('/');
+    console.log(`[WEB] GET ${req.url} - Archivo no encontrado`);
+    res.status(404).sendFile(path.join(__dirname, '..', '..', 'frontend', 'index.html'));
 });
 
 // Manejo de errores
@@ -400,44 +378,11 @@ app.listen(PORT, () => {
     console.log(`   ⏰ Tiempos de comida: ${tiempos.length}`);
     console.log(`   🔄 Reglas de sustitución: ${sustituciones.length}`);
     console.log(`=========================================`);
-    console.log(`🍽️  ENDPOINTS DISPONIBLES:`);
-    console.log(`   GET  /                    → Página principal`);
-    console.log(`   GET  /api/health          → Estado del servidor`);
-    console.log(`   GET  /api/tiempos         → Lista de tiempos`);
-    console.log(`   GET  /api/plato/generar   → Generar plato (tiempo=1,2,3)`);
-    console.log(`   GET  /api/plato/aleatorio → Plato con tiempo aleatorio`);
-    console.log(`   GET  /api/estadisticas    → Estadísticas del sistema`);
-    console.log(`   GET  /api/grupos/:id/comidas → Comidas por grupo`);
-    console.log(`=========================================`);
     console.log(`🚀 Para usar:`);
     console.log(`   1. Abre: http://localhost:${PORT}`);
     console.log(`   2. Selecciona un tiempo de comida`);
     console.log(`   3. Haz clic en "Generar Plato"`);
     console.log(`   4. ¡Listo!`);
-    console.log(`=========================================\n`);
-    
-    // Mostrar datos de ejemplo
-    console.log(`🍎 EJEMPLO DE DATOS CARGADOS:`);
-    grupos.forEach(grupo => {
-        const count = comidas[grupo.id]?.length || 0;
-        console.log(`   ${grupo.nombre}: ${count} alimentos`);
-        if (count > 0) {
-            console.log(`     Ejemplo: "${comidas[grupo.id][0].substring(0, 40)}..."`);
-        }
-    });
-    console.log(`\n🔄 SUSTITUCIONES:`);
-    sustituciones.forEach((s, i) => {
-        console.log(`   ${i + 1}. ${s.descripcion}`);
-        console.log(`     Grupos: ${s.grupos.join(', ')}`);
-        console.log(`     Porciones: ${s.porciones.join(', ')}`);
-    });
-    console.log(`\n`);
-    
-    // Información adicional de rutas
-    console.log(`📂 CONFIGURACIÓN DE RUTAS:`);
-    console.log(`   Ubicación servidor: ${__dirname}`);
-    console.log(`   Ruta frontend: ${path.join(__dirname, '..', '..', 'frontend')}`);
-    console.log(`   Ruta index.html: ${path.join(__dirname, '..', '..', 'frontend', 'index.html')}`);
     console.log(`=========================================\n`);
 });
 

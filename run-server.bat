@@ -19,138 +19,86 @@ set "FRONTEND_DIR=%ROOT_DIR%frontend"
 set "SERVER_FILE=%BACKEND_DIR%\src\server.js"
 
 :: ========================================
-:: COLORES PARA LA CONSOLA
-:: ========================================
-set "COLOR_RESET=[0m"
-set "COLOR_RED=[91m"
-set "COLOR_GREEN=[92m"
-set "COLOR_YELLOW=[93m"
-set "COLOR_BLUE=[94m"
-set "COLOR_MAGENTA=[95m"
-set "COLOR_CYAN=[96m"
-set "COLOR_WHITE=[97m"
-set "COLOR_GRAY=[90m"
-
-:: Función para imprimir con color
-:printColor
-    echo %time% %~2
-    echo.
-goto:eof
-
-:: Función para imprimir título
-:printTitle
-    echo.
-    echo %time% [1;95m╔══════════════════════════════════════════════════════════════╗
-    echo %time% [1;95m║                                                              ║
-    echo %time% [1;95m║    %~1
-    echo %time% [1;95m║                                                              ║
-    echo %time% [1;95m╚══════════════════════════════════════════════════════════════╝[0m
-    echo.
-goto:eof
-
-:: Función para imprimir sección
-:printSection
-    echo %time% [1;94m══════════════════════════════════════════════════════════════════[0m
-    echo %time% [1;94m  %~1[0m
-    echo %time% [1;94m══════════════════════════════════════════════════════════════════[0m
-    echo.
-goto:eof
-
-:: Función para imprimir paso
-:printStep
-    echo %time% [1;92m✓[0m %~1
-goto:eof
-
-:: Función para imprimir error
-:printError
-    echo %time% [1;91m✗ ERROR:[0m %~1
-goto:eof
-
-:: Función para imprimir advertencia
-:printWarning
-    echo %time% [1;93m⚠ ADVERTENCIA:[0m %~1
-goto:eof
-
-:: Función para imprimir información
-:printInfo
-    echo %time% [1;96mℹ INFO:[0m %~1
-goto:eof
-
-:: Función para imprimir éxito
-:printSuccess
-    echo %time% [1;92m✓ ÉXITO:[0m %~1
-goto:eof
-
-:: ========================================
 :: INICIO DEL SCRIPT
 :: ========================================
 cls
-call :printTitle "%APP_TITLE% v%APP_VERSION%"
-echo %time% [1;97mIniciando servidor web en puerto %SERVER_PORT%[0m
-echo %time% [90mDirectorio raíz: %ROOT_DIR%[0m
+echo.
+echo =========================================
+echo    %APP_TITLE% v%APP_VERSION%
+echo =========================================
+echo.
+echo Iniciando servidor web en puerto %SERVER_PORT%
+echo Directorio raiz: %ROOT_DIR%
 echo.
 
 :: ========================================
 :: VERIFICACIÓN DE PRERREQUISITOS
 :: ========================================
-call :printSection "VERIFICACIÓN DE PRERREQUISITOS"
+echo [1/5] VERIFICACION DE PREREQUISITOS
+echo.
 
 :: Verificar Node.js
-echo %time% [96mComprobando Node.js...[0m
+echo Comprobando Node.js...
 node --version >nul 2>&1
 if %errorlevel% neq 0 (
-    call :printError "Node.js no está instalado"
-    echo %time% [93mPor favor, instala Node.js desde:[0m
-    echo %time% [94mhttps://nodejs.org/[0m
+    echo ERROR: Node.js no esta instalado
+    echo.
+    echo Por favor, instala Node.js desde:
+    echo https://nodejs.org/
     pause
     exit /b 1
 )
 for /f "tokens=*" %%i in ('node --version') do set "NODE_VERSION=%%i"
-call :printStep "Node.js %NODE_VERSION% instalado ✓"
+echo    OK: Node.js %NODE_VERSION% instalado
 
 :: Verificar npm
-echo %time% [96mComprobando npm...[0m
+echo Comprobando npm...
 npm --version >nul 2>&1
 if %errorlevel% neq 0 (
-    call :printError "npm no está instalado"
+    echo ERROR: npm no esta instalado
     pause
     exit /b 1
 )
 for /f "tokens=*" %%i in ('npm --version') do set "NPM_VERSION=%%i"
-call :printStep "npm v%NPM_VERSION% instalado ✓"
+echo    OK: npm v%NPM_VERSION% instalado
 
 :: Verificar estructura de directorios
-echo %time% [96mComprobando estructura de directorios...[0m
+echo Comprobando estructura de directorios...
 if not exist "%BACKEND_DIR%" (
-    call :printError "No se encuentra el directorio backend: %BACKEND_DIR%"
-    pause
-    exit /b 1
+    echo ERROR: No se encuentra el directorio backend
+    mkdir "%BACKEND_DIR%"
+    mkdir "%BACKEND_DIR%\src"
+    echo    Creado directorio backend
 )
 
 if not exist "%FRONTEND_DIR%" (
-    call :printError "No se encuentra el directorio frontend: %FRONTEND_DIR%"
-    pause
-    exit /b 1
+    echo ERROR: No se encuentra el directorio frontend
+    mkdir "%FRONTEND_DIR%"
+    echo    Creado directorio frontend
 )
 
 if not exist "%SERVER_FILE%" (
-    call :printError "No se encuentra el archivo server.js: %SERVER_FILE%"
-    pause
-    exit /b 1
+    echo ADVERTENCIA: No se encuentra server.js
+    echo    Se necesita el archivo server.js en: %SERVER_FILE%
 )
 
-call :printStep "Estructura de directorios correcta ✓"
+echo    OK: Estructura de directorios correcta
 echo.
 
 :: ========================================
 :: VERIFICACIÓN DE DEPENDENCIAS
 :: ========================================
-call :printSection "VERIFICACIÓN DE DEPENDENCIAS"
+echo [2/5] VERIFICACION DE DEPENDENCIAS
+echo.
 
-:: Verificar package.json en backend
-if not exist "%BACKEND_DIR%\package.json" (
-    call :printWarning "No existe package.json en backend, creando uno básico..."
+:: Cambiar al directorio backend
+pushd "%BACKEND_DIR%"
+
+:: Verificar package.json
+if not exist "package.json" (
+    echo Creando package.json...
     
+    (
     echo {
     echo   "name": "platos-app-backend",
     echo   "version": "1.0.0",
@@ -158,39 +106,32 @@ if not exist "%BACKEND_DIR%\package.json" (
     echo   "main": "src/server.js",
     echo   "scripts": {
     echo     "start": "node src/server.js",
-    echo     "dev": "node src/server.js",
-    echo     "test": "echo \"Error: no test specified\" ^&^& exit 1"
+    echo     "dev": "node src/server.js"
     echo   },
     echo   "keywords": ["platos", "comida", "saludable", "nodejs"],
     echo   "author": "",
-    echo   "license": "MIT",
-    echo   "dependencies": {}
-    echo } > "%BACKEND_DIR%\package.json"
+    echo   "license": "MIT"
+    echo }
+    ) > package.json
     
-    call :printSuccess "package.json creado en %BACKEND_DIR%"
+    echo    OK: package.json creado
 )
 
-:: Cambiar al directorio backend
-pushd "%BACKEND_DIR%"
-
 :: Verificar dependencias instaladas
-echo %time% [96mComprobando dependencias de Node.js...[0m
+echo Comprobando dependencias de Node.js...
 if not exist "node_modules" (
-    call :printWarning "node_modules no encontrado. Instalando dependencias..."
-    
-    echo %time% [93mInstalando Express.js...[0m
+    echo Dependencias no encontradas. Instalando...
     call :installDependencies
 ) else (
-    call :printStep "Dependencias ya instaladas ✓"
+    echo    OK: Dependencias ya instaladas
     
     :: Verificar si express está instalado
-    echo %time% [96mVerificando paquete Express...[0m
     npm list express >nul 2>&1
     if %errorlevel% neq 0 (
-        call :printWarning "Express no encontrado en node_modules"
+        echo Express no encontrado. Reinstalando...
         call :installDependencies
     ) else (
-        call :printStep "Express.js instalado ✓"
+        echo    OK: Express.js instalado
     )
 )
 
@@ -200,79 +141,96 @@ echo.
 :: ========================================
 :: INFORMACIÓN DEL SISTEMA
 :: ========================================
-call :printSection "INFORMACIÓN DEL SISTEMA"
-
-echo %time% [96mConfiguración actual:[0m
-echo %time% [90m  Puerto del servidor:[0m [97m%SERVER_PORT%[0m
-echo %time% [90m  URL de acceso:[0m [97m%SERVER_URL%[0m
-echo %time% [90m  Directorio backend:[0m [97m%BACKEND_DIR%[0m
-echo %time% [90m  Directorio frontend:[0m [97m%FRONTEND_DIR%[0m
-echo %time% [90m  Archivo del servidor:[0m [97m%SERVER_FILE%[0m
+echo [3/5] INFORMACION DEL SISTEMA
+echo.
+echo Configuracion actual:
+echo    Puerto del servidor: %SERVER_PORT%
+echo    URL de acceso: %SERVER_URL%
+echo    Directorio backend: %BACKEND_DIR%
+echo    Directorio frontend: %FRONTEND_DIR%
+echo    Archivo del servidor: %SERVER_FILE%
 echo.
 
 :: ========================================
 :: VERIFICACIÓN DE ARCHIVOS FRONTEND
 :: ========================================
-call :printSection "VERIFICACIÓN DE ARCHIVOS FRONTEND"
+echo [4/5] VERIFICACION DE ARCHIVOS FRONTEND
+echo.
 
 set "MISSING_FILES=0"
-echo %time% [96mComprobando archivos del frontend...[0m
+echo Comprobando archivos del frontend...
 
 if not exist "%FRONTEND_DIR%\index.html" (
-    call :printError "Falta: index.html"
+    echo    FALTA: index.html
     set /a "MISSING_FILES+=1"
 ) else (
-    call :printStep "index.html encontrado ✓"
+    echo    OK: index.html encontrado
 )
 
 if not exist "%FRONTEND_DIR%\style.css" (
-    call :printError "Falta: style.css"
+    echo    FALTA: style.css
     set /a "MISSING_FILES+=1"
 ) else (
-    call :printStep "style.css encontrado ✓"
+    echo    OK: style.css encontrado
 )
 
 if not exist "%FRONTEND_DIR%\script.js" (
-    call :printError "Falta: script.js"
+    echo    FALTA: script.js
     set /a "MISSING_FILES+=1"
 ) else (
-    call :printStep "script.js encontrado ✓"
+    echo    OK: script.js encontrado
 )
 
 if %MISSING_FILES% gtr 0 (
-    call :printWarning "Faltan %MISSING_FILES% archivos del frontend"
-    echo %time% [93mLa aplicación puede no funcionar correctamente.[0m
-) else (
-    call :printSuccess "Todos los archivos del frontend están presentes ✓"
+    echo.
+    echo ADVERTENCIA: Faltan %MISSING_FILES% archivos del frontend
+    echo La aplicacion puede no funcionar correctamente.
 )
+
 echo.
 
 :: ========================================
 :: INICIAR SERVIDOR
 :: ========================================
-call :printSection "INICIANDO SERVIDOR"
-
-echo %time% [1;92m▶ Iniciando servidor Node.js...[0m
-echo %time% [96mPresiona Ctrl+C para detener el servidor[0m
-echo %time% [96mAccede a la aplicación en: [1;97m%SERVER_URL%[0m
+echo [5/5] INICIANDO SERVIDOR
+echo.
+echo =========================================
+echo INICIANDO SERVIDOR NODE.JS...
+echo =========================================
+echo.
+echo Presiona Ctrl+C para detener el servidor
+echo.
+echo Accede a la aplicacion en:
+echo    %SERVER_URL%
+echo.
+echo =========================================
 echo.
 
 :: Configurar manejo de Ctrl+C
-echo %time% [90m[Presiona Ctrl+C para cerrar el servidor y este script][0m
-echo.
+setlocal DisableDelayedExpansion
+set "CtrlCExit="
+for /f %%a in ('copy /Z "%~dpf0" nul') do set "CtrlCKey=%%a"
+(
+    endlocal
+    set "CtrlCKey=%CtrlCKey%"
+)
 
 :: Ejecutar el servidor
 pushd "%BACKEND_DIR%\src"
-node server.js
-popd
-
-:: ========================================
-:: FIN DEL SCRIPT (cuando se cierra el servidor)
-:: ========================================
+echo Ejecutando: node server.js
 echo.
-call :printSection "SERVIDOR DETENIDO"
-echo %time% [93mEl servidor ha sido detenido.[0m
-echo %time% [96mPara reiniciar, ejecuta este script nuevamente.[0m
+node server.js
+
+:: Si llegamos aquí, el servidor se cerró
+popd
+echo.
+echo =========================================
+echo SERVIDOR DETENIDO
+echo =========================================
+echo.
+echo El servidor ha sido detenido.
+echo Para reiniciar, ejecuta este script nuevamente.
+echo.
 pause
 exit /b 0
 
@@ -280,39 +238,42 @@ exit /b 0
 :: FUNCIÓN PARA INSTALAR DEPENDENCIAS
 :: ========================================
 :installDependencies
-    echo %time% [93mInstalando dependencias... Esto puede tomar un momento.[0m
+    echo Instalando dependencias... Esto puede tomar un momento.
+    echo.
     
     :: Instalar Express
-    npm install express --save --loglevel=error
-    if %errorlevel% neq 0 (
-        call :printError "Error instalando Express"
-        echo %time% [93mIntentando con conexión más lenta...[0m
-        npm install express --save --verbose
-    )
+    echo Ejecutando: npm install express --save
+    npm install express --save
     
-    if %errorlevel% equ 0 (
-        call :printSuccess "Dependencias instaladas correctamente ✓"
-    ) else (
-        call :printError "No se pudieron instalar las dependencias"
-        echo %time% [93mRevisa tu conexión a internet e intenta nuevamente.[0m
+    if %errorlevel% neq 0 (
+        echo ERROR: No se pudieron instalar las dependencias
+        echo.
+        echo Soluciones posibles:
+        echo 1. Verifica tu conexion a internet
+        echo 2. Intenta ejecutar como administrador
+        echo 3. Instala manualmente: npm install express
+        echo.
         pause
         exit /b 1
     )
+    
+    echo.
+    echo OK: Dependencias instaladas correctamente
+    echo.
 goto:eof
 
 :: ========================================
-:: MANEJO DE CIERRE
+:: MANEJADOR DE CTRL+C
 :: ========================================
-:cleanup
+:handleCtrlC
     echo.
-    echo %time% [91mRecibida señal de interrupción (Ctrl+C)[0m
-    echo %time% [93mCerrando servidor...[0m
+    echo ^C
+    echo Recibida senal de interrupcion (Ctrl+C)
+    echo Cerrando servidor...
     
     :: Buscar proceso de Node.js y terminarlo
     taskkill /F /IM node.exe >nul 2>&1
     
-    call :printSection "SERVIDOR DETENIDO"
-    echo %time% [92mServidor detenido correctamente.[0m
-    echo %time% [96mHasta pronto![0m
-    timeout /t 3 >nul
+    echo Servidor detenido correctamente.
+    timeout /t 2 >nul
     exit /b 0

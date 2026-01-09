@@ -7,36 +7,55 @@ let grupoSeleccionado = null;
 
 // Inicialización cuando el DOM esté cargado
 document.addEventListener('DOMContentLoaded', function() {
+    console.log('🍽️ Inicializando aplicación...');
     inicializarApp();
-    verificarServidor();
-    cargarDatosIniciales();
     setupEventListeners();
 });
 
 function inicializarApp() {
-    console.log('🍽️ Inicializando aplicación...');
-    
     // Mostrar información de grupos
     mostrarGrupos();
     
-    // Cargar estadísticas
-    cargarEstadisticas();
+    // Cargar datos iniciales
+    cargarDatosIniciales();
+    
+    // Verificar servidor
+    verificarServidor();
 }
 
 function verificarServidor() {
+    const statusElement = document.getElementById('serverStatus');
+    
     fetch('/api/health')
-        .then(response => response.json())
+        .then(response => {
+            if (!response.ok) {
+                throw new Error('Servidor no responde');
+            }
+            return response.json();
+        })
         .then(data => {
-            const statusElement = document.getElementById('serverStatus');
-            statusElement.innerHTML = '<i class="fas fa-circle online"></i> Servidor conectado';
-            statusElement.classList.add('online');
+            statusElement.innerHTML = '<i class="fas fa-circle" style="color: #27ae60;"></i> Servidor conectado';
             console.log('✅ Servidor conectado:', data);
         })
         .catch(error => {
-            const statusElement = document.getElementById('serverStatus');
-            statusElement.innerHTML = '<i class="fas fa-circle offline"></i> Servidor desconectado';
-            statusElement.classList.add('offline');
+            statusElement.innerHTML = '<i class="fas fa-circle" style="color: #e74c3c;"></i> Servidor desconectado';
             console.error('❌ Error conectando al servidor:', error);
+            
+            // Mostrar mensaje amigable
+            setTimeout(() => {
+                if (document.querySelector('.empty-state')) {
+                    document.querySelector('.empty-state').innerHTML = `
+                        <i class="fas fa-exclamation-triangle" style="color: #e74c3c; font-size: 4rem;"></i>
+                        <h3>Servidor no disponible</h3>
+                        <p>El servidor no está respondiendo. Asegúrate de que:</p>
+                        <ol style="text-align: left; margin-top: 10px;">
+                            <li>El servidor esté ejecutándose</li>
+                            <li>La URL sea http://localhost:3000</li>
+                            <li>No haya conflictos de puerto</li>
+                        </ol>
+                    `;
+                }
+            }, 1000);
         });
 }
 
@@ -51,10 +70,12 @@ function cargarDatosIniciales() {
             console.error('Error cargando tiempos:', error);
         });
     
-    // Cargar sustituciónes
+    // Cargar estadísticas
+    cargarEstadisticas();
+    
+    // Mostrar sustituciones
     mostrarSustituciones();
 }
-
 function mostrarGrupos() {
     const grupos = [
         { id: 1, nombre: 'Grupo 1: Lácteos', color: '#3498db' },
