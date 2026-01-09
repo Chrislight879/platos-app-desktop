@@ -9,7 +9,7 @@ app.use((req, res, next) => {
     next();
 });
 
-// IMPORTANTE: Servir archivos estáticos PRIMERO
+// IMPORTANTE: Servir archivos estáticos PRIMERO - RUTA CORREGIDA
 app.use(express.static(path.join(__dirname, '..', '..', 'frontend')));
 
 // Configurar middleware para JSON
@@ -38,7 +38,7 @@ const tiempos = [
     { id: 3, nombre: 'Cena' }
 ];
 
-// Porciones por tiempo (dieta 1500 calorías)
+// Porciones por tiempo (dieta 1500 calorías) - CORREGIDO
 const porcionesTiempo = {
     1: [ // Desayuno
         { grupo_id: 1, porciones: 1 },
@@ -210,7 +210,7 @@ const comidas = {
     ]
 };
 
-// Sustituciones para Grupo 1
+// Sustituciones para Grupo 1 - CORREGIDO
 const sustituciones = [
     {
         descripcion: 'Sustitución por Grupo 2 + Grupo 3',
@@ -224,133 +224,254 @@ const sustituciones = [
     }
 ];
 
-// Función para obtener alimento aleatorio de un grupo
-function getAlimentoAleatorio(grupoId) {
+// Función mejorada para obtener alimento aleatorio
+function getRandomFood(grupoId) {
     const alimentos = comidas[grupoId];
     if (!alimentos || alimentos.length === 0) {
-        console.log(`❌ No hay alimentos para el grupo ${grupoId}`);
-        return null;
+        // Si no hay alimentos, devolver uno por defecto
+        const defaults = {
+            1: 'una taza de leche descremada',
+            2: 'dos onzas de carne de pollo sin piel',
+            3: 'una manzana mediana',
+            4: 'una rebanada de pan de caja',
+            5: '½ taza de zanahoria',
+            6: 'una cucharadita de aceite'
+        };
+        return defaults[grupoId] || 'Alimento no disponible';
     }
-    const alimento = alimentos[Math.floor(Math.random() * alimentos.length)];
-    return alimento;
+    return alimentos[Math.floor(Math.random() * alimentos.length)];
 }
 
-// Función para generar plato - VERSIÓN SIMPLE QUE FUNCIONA
+// Función para generar plato - VERSIÓN SIMPLIFICADA Y FUNCIONAL
 function generarPlato(tiempoId) {
+    console.log(`\n🔸🔸🔸 Generando plato para tiempo ID: ${tiempoId} 🔸🔸🔸`);
+    
     const tiempo = tiempos.find(t => t.id === tiempoId);
+    if (!tiempo) {
+        console.error(`❌ Tiempo no encontrado: ${tiempoId}`);
+        return { error: 'Tiempo no válido' };
+    }
+    
     const porciones = porcionesTiempo[tiempoId];
+    if (!porciones) {
+        console.error(`❌ Porciones no encontradas para tiempo: ${tiempoId}`);
+        return { error: 'Configuración de porciones no encontrada' };
+    }
+    
     const plato = [];
+    console.log(`📋 Porciones a generar para ${tiempo.nombre}:`, JSON.stringify(porciones));
     
-    console.log(`🔸 Generando plato para ${tiempo.nombre}`);
-    
+    // Procesar cada grupo según las porciones requeridas
     for (const porcion of porciones) {
-        // SIEMPRE sustituir Grupo 1 (para mantenerlo simple)
-        if (porcion.grupo_id === 1) {
-            // Elegir aleatoriamente entre las 2 opciones de sustitución
-            const sustitucion = sustituciones[Math.floor(Math.random() * sustituciones.length)];
+        const grupoId = porcion.grupo_id;
+        const cantidadPorciones = porcion.porciones;
+        const grupoNombre = grupos.find(g => g.id === grupoId)?.nombre || `Grupo ${grupoId}`;
+        
+        console.log(`  ➡ Grupo ${grupoId} (${grupoNombre}): ${cantidadPorciones} porción(es)`);
+        
+        // CASO ESPECIAL: Grupo 1 (Lácteos) - decidir si sustituir
+        if (grupoId === 1) {
+            const usarLacteosDirecto = Math.random() > 0.5;
             
-            console.log(`  🔄 Sustituyendo lácteos por: ${sustitucion.descripcion}`);
-            
-            for (let i = 0; i < sustitucion.grupos.length; i++) {
-                const grupoId = sustitucion.grupos[i];
-                const alimento = getAlimentoAleatorio(grupoId);
-                if (alimento) {
-                    const grupo = grupos.find(g => g.id === grupoId);
+            if (usarLacteosDirecto) {
+                // Usar lácteo directamente
+                const alimento = getRandomFood(1);
+                plato.push({
+                    grupo: grupoNombre,
+                    alimento: alimento,
+                    porcion: '1 porción',
+                    es_sustitucion: false,
+                    sustituye_a: null,
+                    tipo_sustitucion: null
+                });
+                console.log(`    ✅ Usando lácteo directo: ${alimento}`);
+            } else {
+                // Sustituir lácteo
+                const sustitucion = sustituciones[Math.floor(Math.random() * sustituciones.length)];
+                console.log(`    🔄 Sustituyendo lácteos con opción: ${sustitucion.descripcion}`);
+                
+                // Para cada grupo en la sustitución
+                for (let i = 0; i < sustitucion.grupos.length; i++) {
+                    const grupoSustitutoId = sustitucion.grupos[i];
+                    const alimentoSustituto = getRandomFood(grupoSustitutoId);
+                    const grupoSustitutoNombre = grupos.find(g => g.id === grupoSustitutoId)?.nombre || `Grupo ${grupoSustitutoId}`;
+                    
                     plato.push({
-                        grupo: grupo.nombre,
-                        alimento: alimento,
-                        porcion: `${sustitucion.porciones[i]} porción`,
+                        grupo: grupoSustitutoNombre,
+                        alimento: alimentoSustituto,
+                        porcion: '1 porción',
                         es_sustitucion: true,
-                        sustituye_a: 'Grupo 1: Lácteos'
+                        sustituye_a: grupoNombre,
+                        tipo_sustitucion: sustitucion.descripcion
                     });
+                    console.log(`      ➕ ${alimentoSustituto}`);
                 }
             }
         } else {
-            const alimento = getAlimentoAleatorio(porcion.grupo_id);
-            if (alimento) {
-                const grupo = grupos.find(g => g.id === porcion.grupo_id);
-                const porcionTexto = porcion.porciones === 1 ? '1 porción' : 
-                                    porcion.porciones === 2 ? '2 porciones' : 
-                                    porcion.porciones === 3 ? '3 porciones' : 'Porción';
-                
+            // Para otros grupos (no lácteos)
+            for (let i = 0; i < cantidadPorciones; i++) {
+                const alimento = getRandomFood(grupoId);
                 plato.push({
-                    grupo: grupo.nombre,
+                    grupo: grupoNombre,
                     alimento: alimento,
-                    porcion: porcionTexto,
-                    es_sustitucion: false
+                    porcion: `${cantidadPorciones > 1 ? `${i+1} de ${cantidadPorciones} porciones` : '1 porción'}`,
+                    es_sustitucion: false,
+                    sustituye_a: null,
+                    tipo_sustitucion: null
                 });
+                console.log(`    ✅ ${alimento}`);
             }
         }
     }
     
-    console.log(`✅ Plato generado con ${plato.length} alimentos`);
+    console.log(`✅ Plato generado exitosamente con ${plato.length} alimentos`);
+    
     return {
         tiempo_comida: tiempo.nombre,
+        tiempo_id: tiempoId,
         plato: plato,
         total_alimentos: plato.length,
-        tiempo_id: tiempoId
+        fecha_generacion: new Date().toISOString()
     };
 }
 
-// Rutas API
-app.get('/api/tiempos', (req, res) => {
-    console.log(`[API] GET /api/tiempos`);
-    res.json(tiempos);
-});
+// ==================== RUTAS API ====================
 
-app.get('/api/plato/generar', (req, res) => {
-    const tiempoId = parseInt(req.query.tiempo) || 1;
-    console.log(`[API] GET /api/plato/generar?tiempo=${tiempoId}`);
-    
-    if (tiempoId < 1 || tiempoId > 3) {
-        return res.status(400).json({ error: 'Tiempo debe ser 1, 2 o 3' });
-    }
-    
-    const plato = generarPlato(tiempoId);
-    res.json(plato);
-});
-
-app.get('/api/plato/aleatorio', (req, res) => {
-    const tiempoId = Math.floor(Math.random() * 3) + 1;
-    console.log(`[API] GET /api/plato/aleatorio - Tiempo aleatorio: ${tiempoId}`);
-    const plato = generarPlato(tiempoId);
-    res.json(plato);
-});
-
-app.get('/api/estadisticas', (req, res) => {
-    console.log(`[API] GET /api/estadisticas`);
-    const totalComidas = Object.values(comidas).reduce((acc, arr) => acc + arr.length, 0);
-    const stats = {
-        total_comidas: totalComidas,
-        total_grupos: grupos.length,
-        total_tiempos: tiempos.length,
-        total_sustituciones: sustituciones.length
-    };
-    res.json(stats);
-});
-
-// Ruta para verificar el servidor
+// Ruta de verificación
 app.get('/api/health', (req, res) => {
     console.log(`[API] GET /api/health`);
     res.json({ 
         status: 'ok', 
         message: 'Servidor funcionando correctamente',
-        timestamp: new Date().toISOString()
+        timestamp: new Date().toISOString(),
+        version: '1.0.0'
     });
 });
 
-// Ruta para ver datos de grupos
+// Obtener todos los tiempos de comida
+app.get('/api/tiempos', (req, res) => {
+    console.log(`[API] GET /api/tiempos`);
+    res.json({
+        success: true,
+        datos: tiempos,
+        total: tiempos.length
+    });
+});
+
+// Generar plato para un tiempo específico
+app.get('/api/plato/generar', (req, res) => {
+    const tiempoId = parseInt(req.query.tiempo) || 1;
+    console.log(`[API] GET /api/plato/generar?tiempo=${tiempoId}`);
+    
+    if (tiempoId < 1 || tiempoId > 3) {
+        return res.status(400).json({ 
+            success: false,
+            error: 'Tiempo debe ser 1, 2 o 3',
+            mensaje: 'Usa 1 para Desayuno, 2 para Almuerzo, 3 para Cena'
+        });
+    }
+    
+    try {
+        const plato = generarPlato(tiempoId);
+        res.json({
+            success: true,
+            ...plato
+        });
+    } catch (error) {
+        console.error('Error generando plato:', error);
+        res.status(500).json({
+            success: false,
+            error: 'Error interno al generar el plato',
+            detalles: error.message
+        });
+    }
+});
+
+// Generar plato con tiempo aleatorio
+app.get('/api/plato/aleatorio', (req, res) => {
+    const tiempoId = Math.floor(Math.random() * 3) + 1;
+    console.log(`[API] GET /api/plato/aleatorio - Tiempo aleatorio: ${tiempoId}`);
+    
+    try {
+        const plato = generarPlato(tiempoId);
+        res.json({
+            success: true,
+            tiempo_aleatorio: tiempoId,
+            ...plato
+        });
+    } catch (error) {
+        console.error('Error generando plato aleatorio:', error);
+        res.status(500).json({
+            success: false,
+            error: 'Error interno al generar plato aleatorio'
+        });
+    }
+});
+
+// Obtener estadísticas
+app.get('/api/estadisticas', (req, res) => {
+    console.log(`[API] GET /api/estadisticas`);
+    const totalComidas = Object.values(comidas).reduce((acc, arr) => acc + arr.length, 0);
+    
+    const stats = {
+        success: true,
+        total_comidas: totalComidas,
+        total_grupos: grupos.length,
+        total_tiempos: tiempos.length,
+        total_sustituciones: sustituciones.length,
+        grupos: grupos.map(g => ({
+            id: g.id,
+            nombre: g.nombre,
+            total_alimentos: comidas[g.id]?.length || 0
+        }))
+    };
+    res.json(stats);
+});
+
+// Obtener alimentos por grupo
 app.get('/api/grupos/:id/comidas', (req, res) => {
     const grupoId = parseInt(req.params.id);
     console.log(`[API] GET /api/grupos/${grupoId}/comidas`);
     
     if (grupoId < 1 || grupoId > 6) {
-        return res.status(400).json({ error: 'ID de grupo inválido' });
+        return res.status(400).json({ 
+            success: false,
+            error: 'ID de grupo inválido',
+            mensaje: 'El ID debe estar entre 1 y 6'
+        });
     }
     
     const alimentos = comidas[grupoId] || [];
-    res.json(alimentos);
+    res.json({
+        success: true,
+        grupo_id: grupoId,
+        grupo_nombre: grupos.find(g => g.id === grupoId)?.nombre,
+        total_alimentos: alimentos.length,
+        alimentos: alimentos
+    });
 });
+
+// Obtener información de un grupo específico
+app.get('/api/grupos/:id', (req, res) => {
+    const grupoId = parseInt(req.params.id);
+    console.log(`[API] GET /api/grupos/${grupoId}`);
+    
+    const grupo = grupos.find(g => g.id === grupoId);
+    if (!grupo) {
+        return res.status(404).json({
+            success: false,
+            error: 'Grupo no encontrado'
+        });
+    }
+    
+    res.json({
+        success: true,
+        grupo: grupo,
+        total_alimentos: comidas[grupoId]?.length || 0
+    });
+});
+
+// ==================== RUTAS WEB ====================
 
 // Ruta principal - debe ir DESPUÉS de las rutas API
 app.get('/', (req, res) => {
@@ -358,25 +479,50 @@ app.get('/', (req, res) => {
     res.sendFile(path.join(__dirname, '..', '..', 'frontend', 'index.html'));
 });
 
-// Ruta para cualquier otra petición - SIMPLIFICADA
+// Ruta para cualquier otra petición - CORREGIDA
 app.use((req, res) => {
     console.log(`[WEB] Ruta no encontrada: ${req.url}`);
+    
+    // Si es una ruta de API, devolver error 404 JSON
+    if (req.url.startsWith('/api/')) {
+        return res.status(404).json({
+            success: false,
+            error: 'Ruta API no encontrada',
+            mensaje: `La ruta ${req.url} no existe en la API`,
+            rutas_disponibles: [
+                '/api/health',
+                '/api/tiempos',
+                '/api/plato/generar?tiempo=1|2|3',
+                '/api/plato/aleatorio',
+                '/api/estadisticas',
+                '/api/grupos/:id/comidas',
+                '/api/grupos/:id'
+            ]
+        });
+    }
+    
+    // Para rutas no API, servir el frontend
     res.sendFile(path.join(__dirname, '..', '..', 'frontend', 'index.html'));
 });
 
-// Manejo de errores
+// ==================== MANEJO DE ERRORES ====================
+
 app.use((err, req, res, next) => {
-    console.error(`❌ ERROR:`, err.message);
+    console.error(`❌ ERROR DEL SERVIDOR:`, err.message);
     console.error(err.stack);
+    
     res.status(500).json({ 
+        success: false,
         error: 'Error interno del servidor',
-        message: err.message 
+        mensaje: err.message,
+        timestamp: new Date().toISOString()
     });
 });
 
-// Iniciar servidor
+// ==================== INICIAR SERVIDOR ====================
+
 app.listen(PORT, () => {
-    console.log(`=========================================`);
+    console.log(`\n\n=========================================`);
     console.log(`✅ SERVIDOR INICIADO CORRECTAMENTE`);
     console.log(`=========================================`);
     console.log(`🌐 URL: http://localhost:${PORT}`);
@@ -395,18 +541,20 @@ app.listen(PORT, () => {
     console.log(`   GET  /api/plato/generar   → Generar plato (tiempo=1,2,3)`);
     console.log(`   GET  /api/plato/aleatorio → Plato con tiempo aleatorio`);
     console.log(`   GET  /api/estadisticas    → Estadísticas del sistema`);
-    console.log(`   GET  /api/grupos/:id/comidas → Comidas por grupo`);
+    console.log(`   GET  /api/grupos/:id/comidas → Comidas por grupo (1-6)`);
+    console.log(`   GET  /api/grupos/:id      → Información del grupo`);
     console.log(`=========================================`);
     console.log(`🚀 Para usar:`);
     console.log(`   1. Abre: http://localhost:${PORT}`);
     console.log(`   2. Selecciona un tiempo de comida`);
     console.log(`   3. Haz clic en "Generar Plato"`);
-    console.log(`   4. ¡Listo!`);
+    console.log(`   4. ¡Listo! Tu plato aparecerá abajo`);
     console.log(`=========================================\n`);
 });
 
 // Manejar cierre del servidor
 process.on('SIGINT', () => {
     console.log('\n\n🔴 Recibida señal SIGINT. Cerrando servidor...');
+    console.log('👋 ¡Hasta pronto!');
     process.exit(0);
 });

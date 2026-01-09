@@ -2,7 +2,7 @@
 cd /d "%~dp0"
 echo.
 echo ========================================
-echo   GENERADOR DE PLATOS - VERSION FIX
+echo   GENERADOR DE PLATOS - VERSION CORREGIDA
 echo ========================================
 echo.
 
@@ -33,7 +33,7 @@ echo   "dependencies": {}
 echo }
 ) > package.json
 
-echo 4. Instalando Express version estable...
+echo 4. Instalando Express...
 npm install express@4.18.2 --save --no-optional
 
 echo.
@@ -45,6 +45,7 @@ echo.
 echo Presiona Ctrl+C para detener
 echo.
 
+timeout /t 2 /nobreak >nul
 node src\server.js
 
 echo.

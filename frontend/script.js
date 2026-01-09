@@ -4,6 +4,8 @@ let tiempoActual = 1;
 let alimentosPorGrupo = {};
 let alimentoSeleccionado = null;
 let grupoSeleccionado = null;
+let alimentoAReemplazar = null;
+let indiceAReemplazar = null;
 
 // Inicialización cuando el DOM esté cargado
 document.addEventListener('DOMContentLoaded', function() {
@@ -25,6 +27,7 @@ function inicializarApp() {
 
 function verificarServidor() {
     const statusElement = document.getElementById('serverStatus');
+    statusElement.innerHTML = '<i class="fas fa-circle"></i> Conectando al servidor...';
     
     fetch('/api/health')
         .then(response => {
@@ -36,54 +39,107 @@ function verificarServidor() {
         .then(data => {
             statusElement.innerHTML = '<i class="fas fa-circle" style="color: #27ae60;"></i> Servidor conectado';
             console.log('✅ Servidor conectado:', data);
+            
+            // Mostrar mensaje de bienvenida
+            mostrarMensaje('success', 'Servidor conectado correctamente');
         })
         .catch(error => {
-            statusElement.innerHTML = '<i class="fas fa-circle" style="color: #e74c3c;"></i> Servidor desconectado';
             console.error('❌ Error conectando al servidor:', error);
+            statusElement.innerHTML = '<i class="fas fa-circle" style="color: #e74c3c;"></i> Servidor desconectado';
             
             // Mostrar mensaje amigable
             setTimeout(() => {
-                if (document.querySelector('.empty-state')) {
-                    document.querySelector('.empty-state').innerHTML = `
-                        <i class="fas fa-exclamation-triangle" style="color: #e74c3c; font-size: 4rem;"></i>
+                const emptyState = document.querySelector('.empty-state');
+                if (emptyState) {
+                    emptyState.innerHTML = `
+                        <i class="fas fa-exclamation-triangle" style="color: #e74c3c; font-size: 4rem; margin-bottom: 20px;"></i>
                         <h3>Servidor no disponible</h3>
                         <p>El servidor no está respondiendo. Asegúrate de que:</p>
-                        <ol style="text-align: left; margin-top: 10px;">
-                            <li>El servidor esté ejecutándose</li>
-                            <li>La URL sea http://localhost:3000</li>
-                            <li>No haya conflictos de puerto</li>
+                        <ol style="text-align: left; margin-top: 10px; padding-left: 20px;">
+                            <li>El servidor esté ejecutándose en segundo plano</li>
+                            <li>La URL sea <strong>http://localhost:3000</strong></li>
+                            <li>No haya conflictos de puerto (cierra otros programas usando puerto 3000)</li>
                         </ol>
+                        <button class="btn btn-primary" onclick="location.reload()" style="margin-top: 20px;">
+                            <i class="fas fa-sync-alt"></i> Reintentar conexión
+                        </button>
                     `;
                 }
             }, 1000);
         });
 }
 
-function cargarDatosIniciales() {
-    // Cargar tiempos de comida
-    fetch('/api/tiempos')
-        .then(response => response.json())
-        .then(tiempos => {
-            console.log('⏰ Tiempos cargados:', tiempos);
-        })
-        .catch(error => {
-            console.error('Error cargando tiempos:', error);
-        });
+function mostrarMensaje(tipo, texto) {
+    // Crear mensaje temporal
+    const mensajeDiv = document.createElement('div');
+    mensajeDiv.className = `mensaje-flotante ${tipo}`;
+    mensajeDiv.innerHTML = `
+        <i class="fas fa-${tipo === 'success' ? 'check-circle' : 'exclamation-circle'}"></i>
+        ${texto}
+    `;
     
+    // Estilos para el mensaje
+    mensajeDiv.style.cssText = `
+        position: fixed;
+        top: 20px;
+        right: 20px;
+        padding: 15px 20px;
+        background: ${tipo === 'success' ? '#27ae60' : '#e74c3c'};
+        color: white;
+        border-radius: 8px;
+        box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+        z-index: 1000;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        animation: slideIn 0.3s ease;
+    `;
+    
+    // Agregar al documento
+    document.body.appendChild(mensajeDiv);
+    
+    // Remover después de 3 segundos
+    setTimeout(() => {
+        mensajeDiv.style.animation = 'slideOut 0.3s ease';
+        setTimeout(() => {
+            document.body.removeChild(mensajeDiv);
+        }, 300);
+    }, 3000);
+}
+
+// Agregar estilos CSS para animaciones
+if (!document.querySelector('#estilos-mensajes')) {
+    const style = document.createElement('style');
+    style.id = 'estilos-mensajes';
+    style.textContent = `
+        @keyframes slideIn {
+            from { transform: translateX(100%); opacity: 0; }
+            to { transform: translateX(0); opacity: 1; }
+        }
+        @keyframes slideOut {
+            from { transform: translateX(0); opacity: 1; }
+            to { transform: translateX(100%); opacity: 0; }
+        }
+    `;
+    document.head.appendChild(style);
+}
+
+function cargarDatosIniciales() {
     // Cargar estadísticas
     cargarEstadisticas();
     
     // Mostrar sustituciones
     mostrarSustituciones();
 }
+
 function mostrarGrupos() {
     const grupos = [
-        { id: 1, nombre: 'Grupo 1: Lácteos', color: '#3498db' },
-        { id: 2, nombre: 'Grupo 2: Proteínas', color: '#e74c3c' },
-        { id: 3, nombre: 'Grupo 3: Frutas', color: '#2ecc71' },
-        { id: 4, nombre: 'Grupo 4: Cereales', color: '#f39c12' },
-        { id: 5, nombre: 'Grupo 5: Verduras', color: '#9b59b6' },
-        { id: 6, nombre: 'Grupo 6: Grasas', color: '#e67e22' }
+        { id: 1, nombre: 'Grupo 1: Lácteos', color: '#3498db', icon: 'fa-cheese' },
+        { id: 2, nombre: 'Grupo 2: Proteínas', color: '#e74c3c', icon: 'fa-drumstick-bite' },
+        { id: 3, nombre: 'Grupo 3: Frutas', color: '#2ecc71', icon: 'fa-apple-alt' },
+        { id: 4, nombre: 'Grupo 4: Cereales', color: '#f39c12', icon: 'fa-bread-slice' },
+        { id: 5, nombre: 'Grupo 5: Verduras', color: '#9b59b6', icon: 'fa-carrot' },
+        { id: 6, nombre: 'Grupo 6: Grasas', color: '#e67e22', icon: 'fa-oil-can' }
     ];
     
     const gruposInfo = document.getElementById('gruposInfo');
@@ -97,16 +153,22 @@ function mostrarGrupos() {
         const grupoItem = document.createElement('div');
         grupoItem.className = 'grupo-item';
         grupoItem.innerHTML = `
-            <strong>${grupo.nombre.split(':')[0]}</strong><br>
-            <small>${grupo.nombre.split(':')[1]}</small>
+            <i class="fas ${grupo.icon}" style="color: ${grupo.color}; font-size: 1.2rem;"></i>
+            <div>
+                <strong>${grupo.nombre.split(':')[0]}</strong><br>
+                <small>${grupo.nombre.split(':')[1]}</small>
+            </div>
         `;
         grupoItem.style.borderLeft = `3px solid ${grupo.color}`;
         gruposInfo.appendChild(grupoItem);
         
         // Para selector de reemplazo
         const grupoBtn = document.createElement('button');
-        grupoBtn.className = 'btn btn-secondary btn-sm';
-        grupoBtn.innerHTML = `${grupo.id}`;
+        grupoBtn.className = 'grupo-selector-btn';
+        grupoBtn.innerHTML = `
+            <i class="fas ${grupo.icon}"></i>
+            <span>${grupo.id}</span>
+        `;
         grupoBtn.title = grupo.nombre;
         grupoBtn.onclick = () => cargarAlimentosGrupo(grupo.id, grupo.nombre);
         gruposSelector.appendChild(grupoBtn);
@@ -116,45 +178,51 @@ function mostrarGrupos() {
 function mostrarSustituciones() {
     const sustitucionesList = document.getElementById('sustitucionesList');
     sustitucionesList.innerHTML = `
-        <li><i class="fas fa-exchange-alt"></i> 1 porción de Grupo 2 + 1 porción de Grupo 3</li>
-        <li><i class="fas fa-exchange-alt"></i> 1 porción de Grupo 2 + 1 porción de Grupo 4</li>
+        <li><i class="fas fa-exchange-alt" style="color: #2ecc71;"></i> 1 porción de <strong>Grupo 2: Proteínas</strong> + 1 porción de <strong>Grupo 3: Frutas</strong></li>
+        <li><i class="fas fa-exchange-alt" style="color: #f39c12;"></i> 1 porción de <strong>Grupo 2: Proteínas</strong> + 1 porción de <strong>Grupo 4: Cereales</strong></li>
     `;
 }
 
 function cargarEstadisticas() {
     fetch('/api/estadisticas')
-        .then(response => response.json())
-        .then(stats => {
-            const statsGrid = document.getElementById('statsGrid');
-            statsGrid.innerHTML = `
-                <div class="stat-card">
-                    <i class="fas fa-apple-alt"></i>
-                    <div class="stat-value">${stats.total_comidas}</div>
-                    <div class="stat-label">Alimentos Disponibles</div>
-                </div>
-                <div class="stat-card">
-                    <i class="fas fa-layer-group"></i>
-                    <div class="stat-value">${stats.total_grupos}</div>
-                    <div class="stat-label">Grupos Alimenticios</div>
-                </div>
-                <div class="stat-card">
-                    <i class="fas fa-clock"></i>
-                    <div class="stat-value">${stats.total_tiempos}</div>
-                    <div class="stat-label">Tiempos de Comida</div>
-                </div>
-                <div class="stat-card">
-                    <i class="fas fa-exchange-alt"></i>
-                    <div class="stat-value">${stats.total_sustituciones}</div>
-                    <div class="stat-label">Sustituciones</div>
-                </div>
-            `;
+        .then(response => {
+            if (!response.ok) {
+                throw new Error('Error al cargar estadísticas');
+            }
+            return response.json();
+        })
+        .then(data => {
+            if (data.success) {
+                const statsGrid = document.getElementById('statsGrid');
+                statsGrid.innerHTML = `
+                    <div class="stat-card">
+                        <i class="fas fa-apple-alt"></i>
+                        <div class="stat-value">${data.total_comidas}</div>
+                        <div class="stat-label">Alimentos Disponibles</div>
+                    </div>
+                    <div class="stat-card">
+                        <i class="fas fa-layer-group"></i>
+                        <div class="stat-value">${data.total_grupos}</div>
+                        <div class="stat-label">Grupos Alimenticios</div>
+                    </div>
+                    <div class="stat-card">
+                        <i class="fas fa-clock"></i>
+                        <div class="stat-value">${data.total_tiempos}</div>
+                        <div class="stat-label">Tiempos de Comida</div>
+                    </div>
+                    <div class="stat-card">
+                        <i class="fas fa-exchange-alt"></i>
+                        <div class="stat-value">${data.total_sustituciones}</div>
+                        <div class="stat-label">Sustituciones</div>
+                    </div>
+                `;
+            }
         })
         .catch(error => {
             console.error('Error cargando estadísticas:', error);
         });
 }
 
-// Actualizar los event listeners - REEMPLAZA TODO EL setupEventListeners con esto:
 function setupEventListeners() {
     // Botón Generar Plato
     document.getElementById('btnGenerar').addEventListener('click', generarPlato);
@@ -165,7 +233,7 @@ function setupEventListeners() {
     // Botón Reemplazar Alimentos
     document.getElementById('btnReemplazar').addEventListener('click', function() {
         if (!platoActual) {
-            alert('Primero genera un plato para poder reemplazar alimentos.');
+            mostrarMensaje('error', 'Primero genera un plato para poder reemplazar alimentos.');
             return;
         }
         
@@ -217,33 +285,55 @@ function generarPlato() {
     tiempoActual = document.getElementById('tiempoComida').value;
     
     console.log(`🍽️ Generando plato para tiempo: ${tiempoActual}`);
+    mostrarMensaje('success', `Generando plato para ${tiempoActual == 1 ? 'Desayuno' : tiempoActual == 2 ? 'Almuerzo' : 'Cena'}...`);
     
     fetch(`/api/plato/generar?tiempo=${tiempoActual}`)
-        .then(response => response.json())
+        .then(response => {
+            if (!response.ok) {
+                throw new Error(`Error HTTP: ${response.status}`);
+            }
+            return response.json();
+        })
         .then(data => {
-            platoActual = data;
-            mostrarPlato(data);
+            if (data.success) {
+                platoActual = data;
+                mostrarPlato(data);
+                mostrarMensaje('success', `¡Plato generado exitosamente! ${data.total_alimentos} alimentos`);
+            } else {
+                throw new Error(data.error || 'Error desconocido');
+            }
         })
         .catch(error => {
             console.error('Error generando plato:', error);
-            alert('Error al generar el plato. Por favor, intenta de nuevo.');
+            mostrarMensaje('error', `Error: ${error.message}`);
         });
 }
 
 function generarPlatoAleatorio() {
     console.log('🎲 Generando plato con tiempo aleatorio');
+    mostrarMensaje('success', 'Generando plato con tiempo aleatorio...');
     
     fetch('/api/plato/aleatorio')
-        .then(response => response.json())
+        .then(response => {
+            if (!response.ok) {
+                throw new Error(`Error HTTP: ${response.status}`);
+            }
+            return response.json();
+        })
         .then(data => {
-            platoActual = data;
-            tiempoActual = data.tiempo_id;
-            document.getElementById('tiempoComida').value = tiempoActual;
-            mostrarPlato(data);
+            if (data.success) {
+                platoActual = data;
+                tiempoActual = data.tiempo_id;
+                document.getElementById('tiempoComida').value = tiempoActual;
+                mostrarPlato(data);
+                mostrarMensaje('success', `¡Plato aleatorio generado! Tiempo: ${data.tiempo_comida}`);
+            } else {
+                throw new Error(data.error || 'Error desconocido');
+            }
         })
         .catch(error => {
             console.error('Error generando plato aleatorio:', error);
-            alert('Error al generar el plato aleatorio.');
+            mostrarMensaje('error', `Error: ${error.message}`);
         });
 }
 
@@ -252,10 +342,24 @@ function mostrarPlato(platoData) {
     const tiempoInfo = document.getElementById('tiempoInfo');
     
     // Actualizar información del tiempo
-    tiempoInfo.innerHTML = `<h3>${platoData.tiempo_comida}</h3>`;
+    tiempoInfo.innerHTML = `
+        <h3>${platoData.tiempo_comida}</h3>
+        <small>Generado: ${new Date(platoData.fecha_generacion || new Date()).toLocaleTimeString()}</small>
+    `;
     
     // Mostrar alimentos del plato
     platoContainer.innerHTML = '';
+    
+    if (!platoData.plato || platoData.plato.length === 0) {
+        platoContainer.innerHTML = `
+            <div class="empty-state">
+                <i class="fas fa-exclamation-circle" style="color: #f39c12; font-size: 4rem;"></i>
+                <h3>No se generaron alimentos</h3>
+                <p>Intenta generar el plato nuevamente</p>
+            </div>
+        `;
+        return;
+    }
     
     platoData.plato.forEach((alimento, index) => {
         const alimentoCard = document.createElement('div');
@@ -263,7 +367,12 @@ function mostrarPlato(platoData) {
         
         let sustituyeInfo = '';
         if (alimento.es_sustitucion) {
-            sustituyeInfo = `<div class="sustitucion-badge">Sustituye a ${alimento.sustituye_a}</div>`;
+            sustituyeInfo = `<div class="sustitucion-badge"><i class="fas fa-exchange-alt"></i> Sustituye ${alimento.sustituye_a || 'Lácteos'}</div>`;
+        }
+        
+        let reemplazadoBadge = '';
+        if (alimento.reemplazado) {
+            reemplazadoBadge = `<span class="reemplazado-badge" title="Reemplazado a las ${alimento.reemplazado_el}"><i class="fas fa-exchange-alt"></i> Cambiado</span>`;
         }
         
         alimentoCard.innerHTML = `
@@ -273,13 +382,26 @@ function mostrarPlato(platoData) {
             </div>
             <div class="alimento-meta">
                 <span class="alimento-grupo">${alimento.grupo}</span>
-                <span class="alimento-porcion">${alimento.porcion}</span>
                 ${sustituyeInfo}
+                ${reemplazadoBadge}
             </div>
         `;
         
         // Agregar evento de clic para ver detalles
         alimentoCard.addEventListener('click', () => mostrarDetalleAlimento(alimento, index));
+        
+        // Agregar botón de reemplazo
+        const btnReemplazar = document.createElement('button');
+        btnReemplazar.className = 'btn-reemplazar-item';
+        btnReemplazar.innerHTML = '<i class="fas fa-sync-alt"></i>';
+        btnReemplazar.title = 'Reemplazar este alimento';
+        btnReemplazar.onclick = (e) => {
+            e.stopPropagation();
+            mostrarPanelReemplazoMejorado(index);
+        };
+        
+        const metaDiv = alimentoCard.querySelector('.alimento-meta');
+        metaDiv.appendChild(btnReemplazar);
         
         platoContainer.appendChild(alimentoCard);
     });
@@ -287,7 +409,16 @@ function mostrarPlato(platoData) {
     // Agregar contador
     const contador = document.createElement('div');
     contador.className = 'plato-contador';
-    contador.innerHTML = `<p><strong>Total:</strong> ${platoData.total_alimentos} alimentos en este plato</p>`;
+    
+    // Contar estadísticas
+    const totalLacteos = platoData.plato.filter(a => a.grupo.includes('Grupo 1:') && !a.es_sustitucion).length;
+    const totalSustituciones = platoData.plato.filter(a => a.es_sustitucion).length / 2;
+    
+    contador.innerHTML = `
+        <p><strong>Total:</strong> ${platoData.total_alimentos} alimentos en este plato</p>
+        ${totalLacteos > 0 ? `<p><small><i class="fas fa-cheese"></i> Lácteos directos: ${totalLacteos}</small></p>` : ''}
+        ${totalSustituciones > 0 ? `<p><small><i class="fas fa-exchange-alt"></i> Sustituciones: ${totalSustituciones}</small></p>` : ''}
+    `;
     platoContainer.appendChild(contador);
 }
 
@@ -298,16 +429,42 @@ function mostrarDetalleAlimento(alimento, index) {
     
     let sustituyeInfo = '';
     if (alimento.es_sustitucion) {
-        sustituyeInfo = `<p><strong><i class="fas fa-exchange-alt"></i> Sustituye a:</strong> ${alimento.sustituye_a}</p>`;
+        sustituyeInfo = `
+            <div class="detalle-item">
+                <i class="fas fa-exchange-alt" style="color: #e67e22;"></i>
+                <div>
+                    <strong>Sustituye a:</strong><br>
+                    ${alimento.sustituye_a}
+                </div>
+            </div>
+        `;
     }
     
     modalTitle.textContent = alimento.alimento;
     modalBody.innerHTML = `
         <div class="detalle-alimento">
-            <p><strong><i class="fas fa-layer-group"></i> Grupo:</strong> ${alimento.grupo}</p>
-            <p><strong><i class="fas fa-balance-scale"></i> Porción:</strong> ${alimento.porcion}</p>
+            <div class="detalle-item">
+                <i class="fas fa-layer-group" style="color: #3498db;"></i>
+                <div>
+                    <strong>Grupo:</strong><br>
+                    ${alimento.grupo}
+                </div>
+            </div>
+            <div class="detalle-item">
+                <i class="fas fa-balance-scale" style="color: #27ae60;"></i>
+                <div>
+                    <strong>Porción:</strong><br>
+                    ${alimento.porcion}
+                </div>
+            </div>
             ${sustituyeInfo}
-            <p><strong><i class="fas fa-info-circle"></i> Información:</strong> Este alimento es parte de una dieta balanceada de 1500 calorías.</p>
+            <div class="detalle-item">
+                <i class="fas fa-info-circle" style="color: #f39c12;"></i>
+                <div>
+                    <strong>Nota:</strong><br>
+                    Este alimento es parte de una dieta balanceada de 1500 calorías.
+                </div>
+            </div>
         </div>
     `;
     
@@ -324,128 +481,17 @@ function cerrarModal() {
 
 function usarAlimentoModal() {
     const index = document.getElementById('btnUsarEste').dataset.index;
-    alert(`Has seleccionado: ${platoActual.plato[index].alimento}`);
+    mostrarMensaje('success', `Seleccionado: ${platoActual.plato[index].alimento}`);
     cerrarModal();
-}
-
-function mostrarPanelReemplazo() {
-    if (!platoActual) {
-        alert('Primero genera un plato para poder reemplazar alimentos.');
-        return;
-    }
-    
-    document.getElementById('reemplazoPanel').style.display = 'block';
-    document.getElementById('platoContainer').style.display = 'none';
-}
-
-function ocultarPanelReemplazo() {
-    document.getElementById('reemplazoPanel').style.display = 'none';
-    document.getElementById('platoContainer').style.display = 'block';
-}
-
-function cargarAlimentosGrupo(grupoId, grupoNombre) {
-    grupoSeleccionado = grupoId;
-    
-    fetch(`/api/grupos/${grupoId}/comidas`)
-        .then(response => response.json())
-        .then(alimentos => {
-            alimentosPorGrupo[grupoId] = alimentos;
-            mostrarAlimentosGrupo(alimentos, grupoNombre);
-        })
-        .catch(error => {
-            console.error('Error cargando alimentos del grupo:', error);
-            alert('Error al cargar los alimentos del grupo.');
-        });
-}
-
-function mostrarAlimentosGrupo(alimentos, grupoNombre) {
-    const alimentosList = document.getElementById('alimentosList');
-    alimentosList.innerHTML = '';
-    
-    // Título
-    const titulo = document.createElement('div');
-    titulo.className = 'alimento-item titulo';
-    titulo.innerHTML = `<strong>${grupoNombre} - ${alimentos.length} alimentos disponibles</strong>`;
-    alimentosList.appendChild(titulo);
-    
-    // Lista de alimentos
-    alimentos.forEach((alimento, index) => {
-        const alimentoItem = document.createElement('div');
-        alimentoItem.className = 'alimento-item';
-        alimentoItem.textContent = alimento;
-        alimentoItem.dataset.index = index;
-        
-        alimentoItem.addEventListener('click', function() {
-            // Remover selección previa
-            document.querySelectorAll('.alimento-item').forEach(item => {
-                item.classList.remove('selected');
-            });
-            
-            // Seleccionar este
-            this.classList.add('selected');
-            alimentoSeleccionado = alimento;
-        });
-        
-        alimentosList.appendChild(alimentoItem);
-    });
-}
-
-function seleccionarAlimento() {
-    if (!alimentoSeleccionado) {
-        alert('Por favor, selecciona un alimento de la lista.');
-        return;
-    }
-    
-    if (!grupoSeleccionado) {
-        alert('Por favor, selecciona un grupo primero.');
-        return;
-    }
-    
-    // Aquí implementarías la lógica para reemplazar el alimento en el plato actual
-    alert(`Has seleccionado: ${alimentoSeleccionado}\n\nEsta funcionalidad completa requeriría modificar el plato actual en el servidor.`);
-    
-    // Ocultar panel de reemplazo
-    ocultarPanelReemplazo();
-}
-
-function seleccionarAlimentoAleatorio() {
-    if (!grupoSeleccionado || !alimentosPorGrupo[grupoSeleccionado]) {
-        alert('Por favor, selecciona un grupo primero.');
-        return;
-    }
-    
-    const alimentos = alimentosPorGrupo[grupoSeleccionado];
-    const alimentoAleatorio = alimentos[Math.floor(Math.random() * alimentos.length)];
-    
-    // Seleccionar aleatoriamente
-    document.querySelectorAll('.alimento-item').forEach(item => {
-        item.classList.remove('selected');
-    });
-    
-    // Encontrar y seleccionar el elemento correspondiente
-    const items = document.querySelectorAll('.alimento-item');
-    for (let item of items) {
-        if (item.textContent === alimentoAleatorio) {
-            item.classList.add('selected');
-            break;
-        }
-    }
-    
-    alimentoSeleccionado = alimentoAleatorio;
-    alert(`Seleccionado aleatoriamente: ${alimentoAleatorio}`);
 }
 
 // ============================================
 // SISTEMA DE REEMPLAZO MEJORADO
 // ============================================
 
-let alimentoAReemplazar = null;
-let indiceAReemplazar = null;
-
-// Función mejorada para mostrar panel de reemplazo
 function mostrarPanelReemplazoMejorado(alimentoIndex) {
     if (!platoActual) {
-        alert('Primero genera un plato para poder reemplazar alimentos.');
+        mostrarMensaje('error', 'Primero genera un plato para poder reemplazar alimentos.');
         return;
     }
     
@@ -455,7 +501,6 @@ function mostrarPanelReemplazoMejorado(alimentoIndex) {
     
     // Mostrar información del alimento actual
     const alimentoActual = platoActual.plato[alimentoIndex];
-    const mensaje = `Vas a reemplazar: "${alimentoActual.alimento}"\nGrupo: ${alimentoActual.grupo}`;
     
     // Extraer ID del grupo del alimento actual
     const grupoId = parseInt(alimentoActual.grupo.split(':')[0].replace('Grupo ', ''));
@@ -467,35 +512,127 @@ function mostrarPanelReemplazoMejorado(alimentoIndex) {
     document.getElementById('reemplazoPanel').style.display = 'block';
     document.getElementById('platoContainer').style.opacity = '0.5';
     document.getElementById('btnReemplazar').disabled = true;
+}
+
+function cargarAlimentosGrupo(grupoId, grupoNombre) {
+    grupoSeleccionado = grupoId;
+    alimentoSeleccionado = null;
     
-    // Mostrar mensaje informativo
+    // Limpiar selecciones anteriores
+    const items = document.querySelectorAll('.alimento-item');
+    items.forEach(item => item.classList.remove('selected'));
+    
+    fetch(`/api/grupos/${grupoId}/comidas`)
+        .then(response => {
+            if (!response.ok) {
+                throw new Error(`Error HTTP: ${response.status}`);
+            }
+            return response.json();
+        })
+        .then(data => {
+            if (data.success) {
+                alimentosPorGrupo[grupoId] = data.alimentos;
+                mostrarAlimentosGrupo(data.alimentos, grupoNombre, alimentoAReemplazar);
+            } else {
+                throw new Error(data.error || 'Error desconocido');
+            }
+        })
+        .catch(error => {
+            console.error('Error cargando alimentos del grupo:', error);
+            mostrarMensaje('error', `Error cargando alimentos: ${error.message}`);
+        });
+}
+
+function mostrarAlimentosGrupo(alimentos, grupoNombre, alimentoActual) {
     const alimentosList = document.getElementById('alimentosList');
+    alimentosList.innerHTML = '';
+    
+    // Título y alimento actual
     const infoDiv = document.createElement('div');
     infoDiv.className = 'alimento-info-actual';
     infoDiv.innerHTML = `
-        <div style="background: #fff3cd; padding: 10px; border-radius: 5px; margin-bottom: 10px;">
-            <strong><i class="fas fa-info-circle"></i> Reemplazando:</strong><br>
-            "${alimentoActual.alimento}"<br>
-            <small>${alimentoActual.grupo} - ${alimentoActual.porcion}</small>
+        <div style="background: #e8f4f8; padding: 15px; border-radius: 8px; margin-bottom: 15px; border-left: 4px solid #17a2b8;">
+            <h4 style="margin-top: 0; color: #17a2b8;"><i class="fas fa-info-circle"></i> Reemplazando:</h4>
+            <p style="margin: 5px 0;"><strong>${alimentoActual.alimento}</strong></p>
+            <p style="margin: 5px 0; font-size: 0.9em; color: #6c757d;">
+                ${grupoNombre} - ${alimentoActual.porcion}
+            </p>
+        </div>
+        <div style="text-align: center; margin-bottom: 15px; color: #3498db;">
+            <i class="fas fa-arrow-down"></i>
+            <strong> Selecciona un nuevo alimento:</strong>
         </div>
     `;
-    alimentosList.insertBefore(infoDiv, alimentosList.firstChild);
+    alimentosList.appendChild(infoDiv);
+    
+    // Lista de alimentos
+    if (!alimentos || alimentos.length === 0) {
+        const noAlimentos = document.createElement('div');
+        noAlimentos.className = 'alimento-item';
+        noAlimentos.innerHTML = '<em>No hay alimentos disponibles para este grupo</em>';
+        alimentosList.appendChild(noAlimentos);
+        return;
+    }
+    
+    alimentos.forEach((alimento, index) => {
+        const alimentoItem = document.createElement('div');
+        alimentoItem.className = 'alimento-item';
+        alimentoItem.textContent = alimento;
+        alimentoItem.dataset.index = index;
+        
+        // Resaltar si es el alimento actual
+        if (alimento === alimentoActual.alimento) {
+            alimentoItem.innerHTML = `
+                <strong>${alimento}</strong>
+                <small style="color: #6c757d; display: block; margin-top: 5px;">
+                    <i class="fas fa-check-circle" style="color: #27ae60;"></i> Actualmente seleccionado
+                </small>
+            `;
+            alimentoItem.style.backgroundColor = '#f8f9fa';
+            alimentoItem.style.borderLeft = '4px solid #27ae60';
+        }
+        
+        alimentoItem.addEventListener('click', function() {
+            // Remover selección previa
+            document.querySelectorAll('.alimento-item').forEach(item => {
+                item.classList.remove('selected');
+                item.style.backgroundColor = '';
+                item.style.borderLeft = '';
+            });
+            
+            // Seleccionar este
+            this.classList.add('selected');
+            alimentoSeleccionado = alimento;
+            
+            // Resaltar visualmente
+            this.style.backgroundColor = '#e3f2fd';
+            this.style.borderLeft = '4px solid #3498db';
+        });
+        
+        alimentosList.appendChild(alimentoItem);
+    });
 }
 
-// Función mejorada para seleccionar alimento de reemplazo
 function seleccionarAlimentoMejorado() {
     if (!alimentoSeleccionado) {
-        alert('Por favor, selecciona un alimento de la lista.');
+        mostrarMensaje('error', 'Por favor, selecciona un alimento de la lista.');
         return;
     }
     
     if (!grupoSeleccionado) {
-        alert('Por favor, selecciona un grupo primero.');
+        mostrarMensaje('error', 'Por favor, selecciona un grupo primero.');
         return;
     }
     
-    if (indiceAReemplazar === null) {
-        alert('Error: No se especificó qué alimento reemplazar.');
+    if (indiceAReemplazar === null || !alimentoAReemplazar) {
+        mostrarMensaje('error', 'Error: No se especificó qué alimento reemplazar.');
+        return;
+    }
+    
+    // Verificar si se seleccionó el mismo alimento
+    if (alimentoSeleccionado === alimentoAReemplazar.alimento) {
+        mostrarMensaje('info', 'Has seleccionado el mismo alimento. No se realizaron cambios.');
+        ocultarPanelReemplazoMejorado();
         return;
     }
     
@@ -508,7 +645,7 @@ function seleccionarAlimentoMejorado() {
     mostrarPlato(platoActual);
     
     // Mostrar confirmación
-    alert(`✅ Alimento reemplazado correctamente!\n\nNuevo: ${alimentoSeleccionado}`);
+    mostrarMensaje('success', `✅ Alimento reemplazado correctamente!\n\nNuevo: ${alimentoSeleccionado}`);
     
     // Ocultar panel de reemplazo
     ocultarPanelReemplazoMejorado();
@@ -518,7 +655,56 @@ function seleccionarAlimentoMejorado() {
     indiceAReemplazar = null;
 }
 
-// Función mejorada para ocultar panel
+function seleccionarAlimentoAleatorio() {
+    if (!grupoSeleccionado || !alimentosPorGrupo[grupoSeleccionado]) {
+        mostrarMensaje('error', 'Por favor, selecciona un grupo primero.');
+        return;
+    }
+    
+    const alimentos = alimentosPorGrupo[grupoSeleccionado];
+    if (alimentos.length === 0) {
+        mostrarMensaje('error', 'No hay alimentos disponibles en este grupo.');
+        return;
+    }
+    
+    // Filtrar el alimento actual para no seleccionarlo de nuevo
+    const alimentosDisponibles = alimentos.filter(a => a !== alimentoAReemplazar?.alimento);
+    
+    if (alimentosDisponibles.length === 0) {
+        mostrarMensaje('info', 'No hay otros alimentos disponibles en este grupo.');
+        return;
+    }
+    
+    const alimentoAleatorio = alimentosDisponibles[Math.floor(Math.random() * alimentosDisponibles.length)];
+    
+    // Encontrar y seleccionar el elemento correspondiente
+    const items = document.querySelectorAll('.alimento-item');
+    for (let item of items) {
+        if (item.textContent.includes(alimentoAleatorio)) {
+            // Remover selección previa
+            document.querySelectorAll('.alimento-item').forEach(item => {
+                item.classList.remove('selected');
+                item.style.backgroundColor = '';
+                item.style.borderLeft = '';
+            });
+            
+            // Seleccionar este
+            item.classList.add('selected');
+            alimentoSeleccionado = alimentoAleatorio;
+            
+            // Resaltar visualmente
+            item.style.backgroundColor = '#e3f2fd';
+            item.style.borderLeft = '4px solid #3498db';
+            
+            // Desplazar a la vista
+            item.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            break;
+        }
+    }
+    
+    mostrarMensaje('info', `Seleccionado aleatoriamente: ${alimentoAleatorio}`);
+}
+
 function ocultarPanelReemplazoMejorado() {
     document.getElementById('reemplazoPanel').style.display = 'none';
     document.getElementById('platoContainer').style.opacity = '1';
@@ -527,137 +713,9 @@ function ocultarPanelReemplazoMejorado() {
     // Limpiar selección
     alimentoSeleccionado = null;
     grupoSeleccionado = null;
+    alimentoAReemplazar = null;
+    indiceAReemplazar = null;
     
     // Limpiar lista
     document.getElementById('alimentosList').innerHTML = '';
-}
-
-// Función para agregar botón de reemplazo a cada alimento
-function agregarBotonReemplazo(alimentoCard, alimento, index) {
-    const botonReemplazar = document.createElement('button');
-    botonReemplazar.className = 'btn-reemplazar-item';
-    botonReemplazar.innerHTML = '<i class="fas fa-sync-alt"></i> Cambiar';
-    botonReemplazar.style.cssText = `
-        background: #f39c12;
-        color: white;
-        border: none;
-        padding: 5px 10px;
-        border-radius: 4px;
-        cursor: pointer;
-        font-size: 0.8rem;
-        margin-left: 10px;
-    `;
-    
-    botonReemplazar.onclick = (e) => {
-        e.stopPropagation(); // Evitar que se active el clic del card
-        mostrarPanelReemplazoMejorado(index);
-    };
-    
-    // Agregar botón al card del alimento
-    const alimentoMeta = alimentoCard.querySelector('.alimento-meta');
-    alimentoMeta.appendChild(botonReemplazar);
-}
-
-// Modificar la función mostrarPlato para incluir botones
-function mostrarPlato(platoData) {
-    const platoContainer = document.getElementById('platoContainer');
-    const tiempoInfo = document.getElementById('tiempoInfo');
-    
-    // Actualizar información del tiempo
-    tiempoInfo.innerHTML = `<h3>${platoData.tiempo_comida}</h3>`;
-    
-    // Mostrar alimentos del plato
-    platoContainer.innerHTML = '';
-    
-    platoData.plato.forEach((alimento, index) => {
-        const alimentoCard = document.createElement('div');
-        alimentoCard.className = `alimento-card ${alimento.es_sustitucion ? 'sustitucion' : ''} ${alimento.reemplazado ? 'reemplazado' : ''}`;
-        
-        let sustituyeInfo = '';
-        if (alimento.es_sustitucion) {
-            sustituyeInfo = `<div class="sustitucion-badge">Sustituye ${alimento.sustituye_a || 'Lácteos'}</div>`;
-        }
-        
-        let reemplazadoBadge = '';
-        if (alimento.reemplazado) {
-            reemplazadoBadge = `<span class="reemplazado-badge" title="Reemplazado a las ${alimento.reemplazado_el}"><i class="fas fa-exchange-alt"></i> Cambiado</span>`;
-        }
-        
-        alimentoCard.innerHTML = `
-            <div class="alimento-info">
-                <h4>${alimento.alimento}</h4>
-                <p class="alimento-desc">${alimento.porcion}</p>
-            </div>
-            <div class="alimento-meta">
-                <span class="alimento-grupo">${alimento.grupo}</span>
-                <span class="alimento-porcion">${alimento.porcion}</span>
-                ${sustituyeInfo}
-                ${reemplazadoBadge}
-            </div>
-        `;
-        
-        // Agregar evento de clic para ver detalles
-        alimentoCard.addEventListener('click', () => mostrarDetalleAlimento(alimento, index));
-        
-        // Agregar botón de reemplazo (excepto para sustituciones dobles)
-        if (!alimento.es_sustitucion || alimento.tipo_sustitucion) {
-            agregarBotonReemplazo(alimentoCard, alimento, index);
-        }
-        
-        platoContainer.appendChild(alimentoCard);
-    });
-    
-    // Agregar contador
-    const contador = document.createElement('div');
-    contador.className = 'plato-contador';
-    
-    // Contar lácteos vs sustituciones
-    const totalLacteos = platoData.plato.filter(a => a.grupo.includes('Grupo 1')).length;
-    const totalSustituciones = platoData.plato.filter(a => a.es_sustitucion).length / 2; // Cada sustitución son 2 items
-    
-    contador.innerHTML = `
-        <p><strong>Total:</strong> ${platoData.total_alimentos} alimentos</p>
-        <p><small>Lácteos directos: ${totalLacteos} | Sustituciones: ${totalSustituciones}</small></p>
-        ${platoData.plato.some(a => a.reemplazado) ? '<p><small><i class="fas fa-info-circle"></i> Algunos alimentos han sido reemplazados</small></p>' : ''}
-    `;
-    platoContainer.appendChild(contador);
-}
-
-// Actualizar los event listeners en setupEventListeners
-function setupEventListeners() {
-    // ... (tus listeners existentes)
-    
-    // Botón Reemplazar Alimentos (global)
-    document.getElementById('btnReemplazar').addEventListener('click', function() {
-        if (!platoActual) {
-            alert('Primero genera un plato para poder reemplazar alimentos.');
-            return;
-        }
-        
-        // Crear lista de alimentos para reemplazar
-        const alimentosList = document.getElementById('alimentosList');
-        alimentosList.innerHTML = '<div class="seleccionar-alimento">Selecciona un alimento del plato para reemplazar:</div>';
-        
-        platoActual.plato.forEach((alimento, index) => {
-            const item = document.createElement('div');
-            item.className = 'alimento-seleccionable';
-            item.innerHTML = `
-                <strong>${alimento.alimento}</strong><br>
-                <small>${alimento.grupo} - ${alimento.porcion}</small>
-            `;
-            item.onclick = () => mostrarPanelReemplazoMejorado(index);
-            alimentosList.appendChild(item);
-        });
-        
-        document.getElementById('reemplazoPanel').style.display = 'block';
-        document.getElementById('platoContainer').style.opacity = '0.5';
-    });
-    
-    // Botón Cancelar Reemplazo
-    document.getElementById('btnCancelarReemplazo').addEventListener('click', ocultarPanelReemplazoMejorado);
-    
-    // Botón Seleccionar Alimento
-    document.getElementById('btnSeleccionarAlimento').addEventListener('click', seleccionarAlimentoMejorado);
-    
-    // ... (otros listeners)
 }

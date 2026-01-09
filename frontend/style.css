@@ -888,3 +888,366 @@ body {
     align-items: center;
     gap: 10px;
 }
+
+/* ============================================
+   ESTILOS PARA SISTEMA DE REEMPLAZO MEJORADO
+   ============================================ */
+
+.btn-reemplazar-item {
+    background: linear-gradient(135deg, #f39c12 0%, #e67e22 100%) !important;
+    color: white !important;
+    border: none !important;
+    padding: 6px 12px !important;
+    border-radius: 4px !important;
+    cursor: pointer !important;
+    font-size: 0.8rem !important;
+    margin-left: 10px !important;
+    transition: all 0.3s !important;
+    width: 36px !important;
+    height: 36px !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+}
+
+.btn-reemplazar-item:hover {
+    transform: translateY(-2px) !important;
+    box-shadow: 0 3px 10px rgba(243, 156, 18, 0.4) !important;
+}
+
+.reemplazado-badge {
+    background: #17a2b8;
+    color: white;
+    padding: 3px 8px;
+    border-radius: 12px;
+    font-size: 0.75rem;
+    margin-left: 10px;
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+}
+
+.alimento-card.reemplazado {
+    border-left-color: #17a2b8;
+    background: #e8f4f8;
+}
+
+.alimento-seleccionable {
+    padding: 12px 15px;
+    border-bottom: 1px solid #eee;
+    cursor: pointer;
+    transition: all 0.3s;
+    border-radius: 8px;
+    margin-bottom: 8px;
+    background: white;
+}
+
+.alimento-seleccionable:hover {
+    background: #f1f8ff;
+    transform: translateX(5px);
+    border-left: 3px solid #3498db;
+}
+
+.alimento-info-actual {
+    background: #fff9e6;
+    padding: 15px;
+    border-radius: 8px;
+    margin-bottom: 15px;
+    border-left: 4px solid #f39c12;
+}
+
+.seleccionar-alimento {
+    text-align: center;
+    padding: 15px;
+    color: #6c757d;
+    font-style: italic;
+    border-bottom: 1px dashed #dee2e6;
+    margin-bottom: 15px;
+}
+
+/* Panel de reemplazo mejorado */
+.reemplazo-panel {
+    background: white;
+    border-radius: 10px;
+    padding: 25px;
+    margin-top: 20px;
+    box-shadow: 0 5px 20px rgba(0, 0, 0, 0.1);
+    border: 2px solid #e9ecef;
+    animation: slideIn 0.3s ease;
+}
+
+.reemplazo-header {
+    background: #f8f9fa;
+    padding: 15px;
+    border-radius: 8px;
+    margin-bottom: 20px;
+    text-align: center;
+}
+
+.grupo-selector-btn {
+    width: 50px;
+    height: 50px;
+    border-radius: 50%;
+    border: 2px solid #3498db;
+    background: white;
+    color: #3498db;
+    font-weight: bold;
+    cursor: pointer;
+    transition: all 0.3s;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    margin: 5px;
+}
+
+.grupo-selector-btn:hover {
+    background: #3498db;
+    color: white;
+    transform: scale(1.1);
+}
+
+.grupo-selector-btn.active {
+    background: #3498db;
+    color: white;
+}
+
+.grupo-selector-btn i {
+    font-size: 1.2rem;
+    margin-bottom: 2px;
+}
+
+.grupo-selector-btn span {
+    font-size: 0.8rem;
+}
+
+.alimentos-list {
+    max-height: 400px;
+    overflow-y: auto;
+    padding: 10px;
+    background: #f8f9fa;
+    border-radius: 8px;
+    border: 1px solid #dee2e6;
+}
+
+.alimento-item {
+    padding: 12px 15px;
+    margin: 5px 0;
+    background: white;
+    border-radius: 6px;
+    border: 1px solid #dee2e6;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.alimento-item:hover {
+    background: #e3f2fd;
+    border-color: #3498db;
+    transform: translateX(5px);
+}
+
+.alimento-item.selected {
+    background: #d4edda;
+    border-color: #28a745;
+    border-left: 4px solid #28a745;
+}
+
+.reemplazo-actions {
+    display: flex;
+    gap: 15px;
+    justify-content: center;
+    margin-top: 25px;
+    padding-top: 20px;
+    border-top: 2px solid #f1f1f1;
+    flex-wrap: wrap;
+}
+
+/* Estadísticas mejoradas */
+.stats-card {
+    background: white;
+    border-radius: 10px;
+    padding: 20px;
+    margin: 10px 0;
+    box-shadow: 0 3px 10px rgba(0, 0, 0, 0.08);
+    border: 1px solid #e9ecef;
+}
+
+.stats-card h4 {
+    color: #2c3e50;
+    margin-bottom: 15px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.probabilidad-info {
+    background: #e8f4f8;
+    padding: 15px;
+    border-radius: 8px;
+    margin: 15px 0;
+}
+
+.probabilidad-info ul {
+    padding-left: 20px;
+    margin: 10px 0;
+}
+
+.probabilidad-info li {
+    margin-bottom: 8px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+/* Detalles del alimento */
+.detalle-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 15px;
+    margin-bottom: 15px;
+    padding-bottom: 15px;
+    border-bottom: 1px solid #eee;
+}
+
+.detalle-item:last-child {
+    border-bottom: none;
+    margin-bottom: 0;
+    padding-bottom: 0;
+}
+
+.detalle-item i {
+    font-size: 1.5rem;
+    margin-top: 2px;
+}
+
+.detalle-item div {
+    flex: 1;
+}
+
+/* Animaciones */
+@keyframes slideIn {
+    from {
+        opacity: 0;
+        transform: translateY(-20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* Responsive para panel de reemplazo */
+@media (max-width: 768px) {
+    .reemplazo-panel {
+        padding: 15px;
+    }
+    
+    .grupo-selector-btn {
+        width: 40px;
+        height: 40px;
+    }
+    
+    .reemplazo-actions {
+        flex-direction: column;
+    }
+    
+    .reemplazo-actions .btn {
+        width: 100%;
+    }
+}
+
+/* Mejoras visuales para cards de alimento */
+.alimento-card {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    transition: all 0.3s ease;
+}
+
+.alimento-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+}
+
+.alimento-info {
+    flex: 1;
+}
+
+.alimento-meta {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+}
+
+.alimento-grupo {
+    background: #3498db;
+    color: white;
+    padding: 5px 12px;
+    border-radius: 20px;
+    font-size: 0.85rem;
+    font-weight: 500;
+    white-space: nowrap;
+}
+
+.sustitucion-badge {
+    background: #e67e22;
+    color: white;
+    padding: 3px 10px;
+    border-radius: 4px;
+    font-size: 0.8rem;
+    font-weight: 500;
+    white-space: nowrap;
+}
+
+.plato-contador {
+    background: #e3f2fd;
+    padding: 15px;
+    border-radius: 8px;
+    text-align: center;
+    margin-top: 20px;
+    border-left: 4px solid #3498db;
+}
+
+.plato-contador p {
+    margin: 5px 0;
+}
+
+/* Estilos para mensajes de error/éxito */
+.mensaje-flotante {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    padding: 15px 20px;
+    color: white;
+    border-radius: 8px;
+    box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+    z-index: 1000;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    animation: slideInRight 0.3s ease;
+    max-width: 400px;
+}
+
+@keyframes slideInRight {
+    from {
+        transform: translateX(100%);
+        opacity: 0;
+    }
+    to {
+        transform: translateX(0);
+        opacity: 1;
+    }
+}
+
+@keyframes slideOutRight {
+    from {
+        transform: translateX(0);
+        opacity: 1;
+    }
+    to {
+        transform: translateX(100%);
+        opacity: 0;
+    }
+}
