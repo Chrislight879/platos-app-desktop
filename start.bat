@@ -1,4 +1,5 @@
 @echo off
+cd /d "%~dp0"
 echo.
 echo ========================================
 echo   GENERADOR DE PLATOS SALUDABLES
@@ -17,7 +18,7 @@ if errorlevel 1 (
 )
 
 echo.
-echo Paso 2: Instalando dependencias...
+echo Paso 2: Verificando dependencias...
 if not exist "backend\node_modules" (
     echo Instalando Express.js...
     cd backend
@@ -39,6 +40,7 @@ echo   http://localhost:3000
 echo.
 echo Presiona Ctrl+C para detener el servidor
 echo.
+echo Los logs se mostraran aqui:
 echo ========================================
 echo.
 
@@ -46,5 +48,9 @@ cd backend
 node src\server.js
 
 echo.
-echo Servidor detenido.
+echo ========================================
+echo   SERVIDOR DETENIDO
+echo ========================================
+echo.
+echo Para reiniciar, ejecuta este archivo nuevamente.
 pause

@@ -154,6 +154,7 @@ function cargarEstadisticas() {
         });
 }
 
+// Actualizar los event listeners - REEMPLAZA TODO EL setupEventListeners con esto:
 function setupEventListeners() {
     // Botón Generar Plato
     document.getElementById('btnGenerar').addEventListener('click', generarPlato);
@@ -162,13 +163,38 @@ function setupEventListeners() {
     document.getElementById('btnAleatorio').addEventListener('click', generarPlatoAleatorio);
     
     // Botón Reemplazar Alimentos
-    document.getElementById('btnReemplazar').addEventListener('click', mostrarPanelReemplazo);
+    document.getElementById('btnReemplazar').addEventListener('click', function() {
+        if (!platoActual) {
+            alert('Primero genera un plato para poder reemplazar alimentos.');
+            return;
+        }
+        
+        // Crear lista de alimentos para reemplazar
+        const alimentosList = document.getElementById('alimentosList');
+        alimentosList.innerHTML = '<div class="seleccionar-alimento">Selecciona un alimento del plato para reemplazar:</div>';
+        
+        platoActual.plato.forEach((alimento, index) => {
+            const item = document.createElement('div');
+            item.className = 'alimento-seleccionable';
+            item.innerHTML = `
+                <strong>${alimento.alimento}</strong><br>
+                <small>${alimento.grupo} - ${alimento.porcion}</small>
+                ${alimento.es_sustitucion ? '<br><small style="color: #e67e22;"><i class="fas fa-exchange-alt"></i> Sustitución</small>' : ''}
+            `;
+            item.onclick = () => mostrarPanelReemplazoMejorado(index);
+            alimentosList.appendChild(item);
+        });
+        
+        document.getElementById('reemplazoPanel').style.display = 'block';
+        document.getElementById('platoContainer').style.opacity = '0.5';
+        document.getElementById('btnReemplazar').disabled = true;
+    });
     
     // Botón Cancelar Reemplazo
-    document.getElementById('btnCancelarReemplazo').addEventListener('click', ocultarPanelReemplazo);
+    document.getElementById('btnCancelarReemplazo').addEventListener('click', ocultarPanelReemplazoMejorado);
     
     // Botón Seleccionar Alimento
-    document.getElementById('btnSeleccionarAlimento').addEventListener('click', seleccionarAlimento);
+    document.getElementById('btnSeleccionarAlimento').addEventListener('click', seleccionarAlimentoMejorado);
     
     // Botón Aleatorio del Grupo
     document.getElementById('btnAleatorioGrupo').addEventListener('click', seleccionarAlimentoAleatorio);
