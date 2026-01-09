@@ -91,9 +91,22 @@ const comidas = {
 };
 
 // FUNCIÓN PARA ALEATORIO
+// Función mejorada para obtener alimento aleatorio
 function getRandomFood(grupoId) {
-    const foods = comidas[grupoId];
-    return foods[Math.floor(Math.random() * foods.length)];
+    const alimentos = comidas[grupoId];
+    if (!alimentos || alimentos.length === 0) {
+        // Si no hay alimentos, devolver uno por defecto
+        const defaults = {
+            1: 'una taza de leche descremada',
+            2: 'dos onzas de carne de pollo sin piel',
+            3: 'una manzana mediana',
+            4: 'una rebanada de pan de caja',
+            5: '½ taza de zanahoria',
+            6: 'una cucharadita de aceite'
+        };
+        return defaults[grupoId] || 'Alimento no disponible';
+    }
+    return alimentos[Math.floor(Math.random() * alimentos.length)];
 }
 
 // RUTAS API
@@ -166,6 +179,76 @@ app.get('/', (req, res) => {
 app.use((req, res) => {
     res.status(404).send('Ruta no encontrada');
 });
+
+// Función para generar plato - VERSIÓN CORREGIDA
+function generarPlato(tiempoId) {
+    const tiempo = tiempos.find(t => t.id === tiempoId);
+    const porciones = porcionesTiempo[tiempoId];
+    const plato = [];
+    
+    for (const porcion of porciones) {
+        if (porcion.grupo_id === 1) {
+            // 50% probabilidad de usar lácteos, 50% de sustituir
+            const usarLacteos = Math.random() > 0.5;
+            
+            if (usarLacteos) {
+                // Usar un alimento del Grupo 1 (Lácteos)
+                const alimento = getRandomFood(1);
+                plato.push({
+                    grupo: 'Grupo 1: Lácteos',
+                    alimento: alimento,
+                    porcion: '1 porción',
+                    es_sustitucion: false,
+                    notas: 'Lácteo directo'
+                });
+            } else {
+                // Sustituir - elegir aleatoriamente entre las 2 opciones
+                const opcionSustitucion = Math.random() > 0.5 ? 0 : 1;
+                const sustituciones = [
+                    { grupos: [2, 3], nombres: ['Proteínas', 'Frutas'] },
+                    { grupos: [2, 4], nombres: ['Proteínas', 'Cereales'] }
+                ];
+                
+                const sustitucion = sustituciones[opcionSustitucion];
+                
+                // Agregar ambos alimentos de la sustitución
+                sustitucion.grupos.forEach((grupoId, index) => {
+                    const alimento = getRandomFood(grupoId);
+                    plato.push({
+                        grupo: `Grupo ${grupoId}: ${sustitucion.nombres[index]}`,
+                        alimento: alimento,
+                        porcion: '1 porción',
+                        es_sustitucion: true,
+                        sustituye_a: 'Grupo 1: Lácteos',
+                        tipo_sustitucion: sustitucion.grupos.join('+')
+                    });
+                });
+            }
+        } else {
+            // Para otros grupos, usar alimento normal
+            const alimento = getRandomFood(porcion.grupo_id);
+            const grupoNombre = grupos.find(g => g.id === porcion.grupo_id).nombre;
+            
+            // Manejar múltiples porciones
+            for (let i = 0; i < porcion.porciones; i++) {
+                plato.push({
+                    grupo: grupoNombre,
+                    alimento: alimento,
+                    porcion: '1 porción',
+                    es_sustitucion: false,
+                    indice_porcion: i + 1
+                });
+            }
+        }
+    }
+    
+    return {
+        tiempo_comida: tiempo.nombre,
+        plato: plato,
+        total_alimentos: plato.length,
+        tiempo_id: tiempoId
+    };
+}
 
 // INICIAR SERVIDOR
 app.listen(PORT, '0.0.0.0', () => {

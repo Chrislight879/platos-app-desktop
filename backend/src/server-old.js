@@ -235,44 +235,80 @@ function getAlimentoAleatorio(grupoId) {
     return alimento;
 }
 
-// Función para generar plato
+// Función mejorada para obtener alimento aleatorio
+function getRandomFood(grupoId) {
+    const alimentos = comidas[grupoId];
+    if (!alimentos || alimentos.length === 0) {
+        // Si no hay alimentos, devolver uno por defecto
+        const defaults = {
+            1: 'una taza de leche descremada',
+            2: 'dos onzas de carne de pollo sin piel',
+            3: 'una manzana mediana',
+            4: 'una rebanada de pan de caja',
+            5: '½ taza de zanahoria',
+            6: 'una cucharadita de aceite'
+        };
+        return defaults[grupoId] || 'Alimento no disponible';
+    }
+    return alimentos[Math.floor(Math.random() * alimentos.length)];
+}
+// Función para generar plato - VERSIÓN CORREGIDA
 function generarPlato(tiempoId) {
     const tiempo = tiempos.find(t => t.id === tiempoId);
-    const porciones = porcionesTiempo[tiempoId] || [];
+    const porciones = porcionesTiempo[tiempoId];
     const plato = [];
     
     for (const porcion of porciones) {
-        // Si es Grupo 1, aplicar sustitución aleatoria
         if (porcion.grupo_id === 1) {
-            const sustitucion = sustituciones[Math.floor(Math.random() * sustituciones.length)];
+            // 50% probabilidad de usar lácteos, 50% de sustituir
+            const usarLacteos = Math.random() > 0.5;
             
-            for (let i = 0; i < sustitucion.grupos.length; i++) {
-                const grupoId = sustitucion.grupos[i];
-                const alimento = getAlimentoAleatorio(grupoId);
-                if (alimento) {
-                    const grupo = grupos.find(g => g.id === grupoId);
+            if (usarLacteos) {
+                // Usar un alimento del Grupo 1 (Lácteos)
+                const alimento = getRandomFood(1);
+                plato.push({
+                    grupo: 'Grupo 1: Lácteos',
+                    alimento: alimento,
+                    porcion: '1 porción',
+                    es_sustitucion: false,
+                    notas: 'Lácteo directo'
+                });
+            } else {
+                // Sustituir - elegir aleatoriamente entre las 2 opciones
+                const opcionSustitucion = Math.random() > 0.5 ? 0 : 1;
+                const sustituciones = [
+                    { grupos: [2, 3], nombres: ['Proteínas', 'Frutas'] },
+                    { grupos: [2, 4], nombres: ['Proteínas', 'Cereales'] }
+                ];
+                
+                const sustitucion = sustituciones[opcionSustitucion];
+                
+                // Agregar ambos alimentos de la sustitución
+                sustitucion.grupos.forEach((grupoId, index) => {
+                    const alimento = getRandomFood(grupoId);
                     plato.push({
-                        grupo: grupo.nombre,
+                        grupo: `Grupo ${grupoId}: ${sustitucion.nombres[index]}`,
                         alimento: alimento,
-                        porcion: `${sustitucion.porciones[i]} porción`,
+                        porcion: '1 porción',
                         es_sustitucion: true,
-                        sustituye_a: 'Grupo 1: Lácteos'
+                        sustituye_a: 'Grupo 1: Lácteos',
+                        tipo_sustitucion: sustitucion.grupos.join('+')
                     });
-                }
+                });
             }
         } else {
-            const alimento = getAlimentoAleatorio(porcion.grupo_id);
-            if (alimento) {
-                const grupo = grupos.find(g => g.id === porcion.grupo_id);
-                const porcionTexto = porcion.porciones === 1 ? '1 porción' : 
-                                    porcion.porciones === 2 ? '2 porciones' : 
-                                    porcion.porciones === 3 ? '3 porciones' : 'Porción';
-                
+            // Para otros grupos, usar alimento normal
+            const alimento = getRandomFood(porcion.grupo_id);
+            const grupoNombre = grupos.find(g => g.id === porcion.grupo_id).nombre;
+            
+            // Manejar múltiples porciones
+            for (let i = 0; i < porcion.porciones; i++) {
                 plato.push({
-                    grupo: grupo.nombre,
+                    grupo: grupoNombre,
                     alimento: alimento,
-                    porcion: porcionTexto,
-                    es_sustitucion: false
+                    porcion: '1 porción',
+                    es_sustitucion: false,
+                    indice_porcion: i + 1
                 });
             }
         }
@@ -285,7 +321,6 @@ function generarPlato(tiempoId) {
         tiempo_id: tiempoId
     };
 }
-
 // Rutas API
 app.get('/api/tiempos', (req, res) => {
     console.log(`[API] GET /api/tiempos`);

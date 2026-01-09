@@ -693,3 +693,198 @@ body {
         font-size: 0.9rem !important;
     }
 }
+
+/* ============================================
+   ESTILOS PARA SISTEMA DE REEMPLAZO MEJORADO
+   ============================================ */
+
+.btn-reemplazar-item {
+    background: linear-gradient(135deg, #f39c12 0%, #e67e22 100%) !important;
+    color: white !important;
+    border: none !important;
+    padding: 6px 12px !important;
+    border-radius: 4px !important;
+    cursor: pointer !important;
+    font-size: 0.8rem !important;
+    margin-left: 10px !important;
+    transition: all 0.3s !important;
+}
+
+.btn-reemplazar-item:hover {
+    transform: translateY(-2px) !important;
+    box-shadow: 0 3px 10px rgba(243, 156, 18, 0.4) !important;
+}
+
+.reemplazado-badge {
+    background: #17a2b8;
+    color: white;
+    padding: 3px 8px;
+    border-radius: 12px;
+    font-size: 0.75rem;
+    margin-left: 10px;
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+}
+
+.alimento-card.reemplazado {
+    border-left-color: #17a2b8;
+    background: #e8f4f8;
+}
+
+.alimento-seleccionable {
+    padding: 12px 15px;
+    border-bottom: 1px solid #eee;
+    cursor: pointer;
+    transition: all 0.3s;
+    border-radius: 8px;
+    margin-bottom: 8px;
+}
+
+.alimento-seleccionable:hover {
+    background: #f1f8ff;
+    transform: translateX(5px);
+    border-left: 3px solid #3498db;
+}
+
+.alimento-info-actual {
+    background: #fff9e6;
+    padding: 15px;
+    border-radius: 8px;
+    margin-bottom: 15px;
+    border-left: 4px solid #f39c12;
+}
+
+.seleccionar-alimento {
+    text-align: center;
+    padding: 15px;
+    color: #6c757d;
+    font-style: italic;
+    border-bottom: 1px dashed #dee2e6;
+    margin-bottom: 15px;
+}
+
+/* Panel de reemplazo mejorado */
+.reemplazo-panel {
+    background: white;
+    border-radius: 10px;
+    padding: 25px;
+    margin-top: 20px;
+    box-shadow: 0 5px 20px rgba(0, 0, 0, 0.1);
+    border: 2px solid #e9ecef;
+}
+
+.reemplazo-header {
+    background: #f8f9fa;
+    padding: 15px;
+    border-radius: 8px;
+    margin-bottom: 20px;
+}
+
+.grupos-selector {
+    display: flex;
+    gap: 10px;
+    justify-content: center;
+    flex-wrap: wrap;
+    margin: 15px 0;
+}
+
+.grupos-selector button {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    border: 2px solid #3498db;
+    background: white;
+    color: #3498db;
+    font-weight: bold;
+    cursor: pointer;
+    transition: all 0.3s;
+}
+
+.grupos-selector button:hover {
+    background: #3498db;
+    color: white;
+    transform: scale(1.1);
+}
+
+.grupos-selector button.active {
+    background: #3498db;
+    color: white;
+}
+
+.alimentos-list {
+    max-height: 400px;
+    overflow-y: auto;
+    padding: 10px;
+    background: #f8f9fa;
+    border-radius: 8px;
+    border: 1px solid #dee2e6;
+}
+
+.alimento-item {
+    padding: 12px 15px;
+    margin: 5px 0;
+    background: white;
+    border-radius: 6px;
+    border: 1px solid #dee2e6;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.alimento-item:hover {
+    background: #e3f2fd;
+    border-color: #3498db;
+    transform: translateX(5px);
+}
+
+.alimento-item.selected {
+    background: #d4edda;
+    border-color: #28a745;
+    border-left: 4px solid #28a745;
+}
+
+.reemplazo-actions {
+    display: flex;
+    gap: 15px;
+    justify-content: center;
+    margin-top: 25px;
+    padding-top: 20px;
+    border-top: 2px solid #f1f1f1;
+}
+
+/* Estadísticas mejoradas */
+.stats-card {
+    background: white;
+    border-radius: 10px;
+    padding: 20px;
+    margin: 10px 0;
+    box-shadow: 0 3px 10px rgba(0, 0, 0, 0.08);
+    border: 1px solid #e9ecef;
+}
+
+.stats-card h4 {
+    color: #2c3e50;
+    margin-bottom: 15px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.probabilidad-info {
+    background: #e8f4f8;
+    padding: 15px;
+    border-radius: 8px;
+    margin: 15px 0;
+}
+
+.probabilidad-info ul {
+    padding-left: 20px;
+    margin: 10px 0;
+}
+
+.probabilidad-info li {
+    margin-bottom: 8px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
