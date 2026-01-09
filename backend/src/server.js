@@ -359,7 +359,7 @@ app.get('/', (req, res) => {
 });
 
 // Ruta para cualquier otra petición - SIMPLIFICADA
-app.get('*', (req, res) => {
+app.use((req, res) => {
     console.log(`[WEB] Ruta no encontrada: ${req.url}`);
     res.sendFile(path.join(__dirname, '..', '..', 'frontend', 'index.html'));
 });
