@@ -1,50 +1,47 @@
-# Generador de Platos Saludables - Dieta 1500 Calorías
+# Generador de Platos de Dieta - Web App
 
-Aplicación completa para generar platos de comida balanceados basados en una dieta de 1500 calorías con sistema de sustituciones automáticas.
+Aplicación web para generar platos de comida aleatorios según la dieta de 1500 calorías, basada en 6 grupos alimenticios.
 
-## Características Principales
+## Características
 
-### 🍽️ Sistema de Dieta 1500 Calorías
-- Porciones específicas por tiempo de comida
-- 6 grupos alimenticios organizados
-- 133 alimentos diferentes preconfigurados
-- Sistema automático de sustituciones
+- **Generación aleatoria**: Platos únicos para desayuno, almuerzo y cena
+- **6 grupos alimenticios**: Organizados según la dieta de 1500 calorías
+- **Sustituciones inteligentes**: Opciones para sustituir alimentos del Grupo 1
+- **Interfaz moderna**: Diseño responsive y fácil de usar
+- **Estadísticas**: Muestra información sobre los alimentos disponibles
 
-### 🔄 Sustituciones Inteligentes
-- **Grupo 1 (Lácteos)** puede sustituirse por:
-  - Grupo 2 + Grupo 3 (Proteínas + Frutas)
-  - Grupo 2 + Grupo 4 (Proteínas + Cereales)
-- Sustituciones automáticas y manuales
-- Sistema balanceado de porciones
+## Grupos Alimenticios
 
-### 📊 Grupos Alimenticios
-1. **Grupo 1**: Lácteos (4 alimentos)
-2. **Grupo 2**: Proteínas (31 alimentos)
-3. **Grupo 3**: Frutas (36 alimentos)
-4. **Grupo 4**: Cereales (23 alimentos)
-5. **Grupo 5**: Verduras (27 alimentos)
-6. **Grupo 6**: Grasas (12 alimentos)
-
-### ⏰ Tiempos de Comida
-- **Desayuno**: Balance energético matutino
-- **Almuerzo**: Comida principal del día
-- **Cena**: Alimentación ligera nocturna
+1. **Grupo 1**: Lácteos descremados
+2. **Grupo 2**: Proteínas (carnes, pescados, huevos, quesos)
+3. **Grupo 3**: Frutas
+4. **Grupo 4**: Carbohidratos (pan, cereales, granos)
+5. **Grupo 5**: Vegetales
+6. **Grupo 6**: Grasas (aceites, aguacate)
 
 ## Instalación
 
-### Método 1: Instalador Automático (Recomendado)
-1. Descarga `setup.bat`
-2. Haz doble clic para ejecutar (Administrador)
-3. Sigue las instrucciones en pantalla
-4. ¡Listo! La aplicación se instalará automáticamente
+### Requisitos previos
+- Node.js 14 o superior
+- Navegador web moderno
 
-### Método 2: Instalación Manual
+### Método 1: Usando start.bat (Windows)
+1. Descarga o clona este repositorio
+2. Haz doble clic en `start.bat`
+3. La aplicación se abrirá automáticamente
+
+### Método 2: Instalación manual
 ```bash
-# 1. Instalar Node.js desde nodejs.org
-# 2. Descargar y extraer la aplicación
-# 3. Ejecutar en una terminal:
+# 1. Navegar al directorio backend
 cd backend
+
+# 2. Instalar dependencias
 npm install
-node init-db.js
-node src/server.js
-# 4. Abrir http://localhost:3000
+
+# 3. Inicializar base de datos
+npm run init-db
+
+# 4. Iniciar servidor
+npm start
+
+# 5. Abrir en navegador: http://localhost:3000

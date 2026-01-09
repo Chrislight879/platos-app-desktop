@@ -1,0 +1,189 @@
+document.addEventListener('DOMContentLoaded', function() {
+    // Elementos del DOM
+    const timeButtons = document.querySelectorAll('.time-btn');
+    const generateBtn = document.getElementById('generate-btn');
+    const regenerateBtn = document.getElementById('regenerate-btn');
+    const loadingElement = document.getElementById('loading');
+    const platoResult = document.getElementById('plato-result');
+    const platoTiempo = document.getElementById('plato-tiempo');
+    const totalPorciones = document.getElementById('total-porciones');
+    const alimentosList = document.getElementById('alimentos-list');
+    const statsGrid = document.getElementById('stats-grid');
+    
+    // Variables de estado
+    let currentTimeId = 1; // Desayuno por defecto
+    let currentPlato = null;
+    
+    // Inicializar la aplicación
+    initApp();
+    
+    // Event Listeners
+    timeButtons.forEach(button => {
+        button.addEventListener('click', function() {
+            // Remover clase active de todos los botones
+            timeButtons.forEach(btn => btn.classList.remove('active'));
+            
+            // Agregar clase active al botón clickeado
+            this.classList.add('active');
+            
+            // Actualizar tiempo actual
+            currentTimeId = parseInt(this.dataset.time);
+            
+            // Habilitar botón de generación
+            generateBtn.disabled = false;
+        });
+    });
+    
+    generateBtn.addEventListener('click', generatePlato);
+    regenerateBtn.addEventListener('click', generatePlato);
+    
+    // Funciones
+    async function initApp() {
+        await loadStats();
+    }
+    
+    async function generatePlato() {
+        try {
+            // Mostrar loading
+            showLoading(true);
+            
+            // Realizar petición al backend
+            const response = await fetch(`http://localhost:3000/api/generar-plato/${currentTimeId}`);
+            
+            if (!response.ok) {
+                throw new Error(`Error HTTP: ${response.status}`);
+            }
+            
+            const data = await response.json();
+            
+            if (data.success) {
+                currentPlato = data.plato;
+                displayPlato(currentPlato);
+                
+                // Habilitar botón de regenerar
+                regenerateBtn.disabled = false;
+            } else {
+                throw new Error(data.message || 'Error al generar el plato');
+            }
+            
+        } catch (error) {
+            console.error('Error al generar plato:', error);
+            alert(`Error: ${error.message}`);
+        } finally {
+            showLoading(false);
+        }
+    }
+    
+    function displayPlato(plato) {
+        // Actualizar información del tiempo
+        platoTiempo.textContent = plato.tiempo;
+        totalPorciones.textContent = `${plato.totalPorciones} porciones`;
+        
+        // Limpiar lista anterior
+        alimentosList.innerHTML = '';
+        
+        // Agrupar alimentos por grupo para mejor visualización
+        const alimentosPorGrupo = {};
+        
+        plato.alimentos.forEach(alimento => {
+            const grupoId = alimento.grupo_id;
+            if (!alimentosPorGrupo[grupoId]) {
+                alimentosPorGrupo[grupoId] = [];
+            }
+            alimentosPorGrupo[grupoId].push(alimento);
+        });
+        
+        // Mostrar alimentos agrupados
+        Object.keys(alimentosPorGrupo).sort().forEach(grupoId => {
+            const alimentos = alimentosPorGrupo[grupoId];
+            
+            alimentos.forEach(alimento => {
+                const alimentoElement = createAlimentoElement(alimento);
+                alimentosList.appendChild(alimentoElement);
+            });
+        });
+        
+        // Mostrar el resultado
+        platoResult.style.display = 'block';
+    }
+    
+    function createAlimentoElement(alimento) {
+        const div = document.createElement('div');
+        div.className = 'alimento-item';
+        
+        if (alimento.es_sustitucion) {
+            div.classList.add('sustitucion');
+        }
+        
+        let grupoTexto = `Grupo ${alimento.grupo_id}`;
+        if (alimento.es_sustitucion && alimento.grupo_original) {
+            grupoTexto = `Sustitución de ${alimento.grupo_original}`;
+        }
+        
+        div.innerHTML = `
+            <div class="grupo-badge">${grupoTexto}</div>
+            <div class="alimento-nombre">${alimento.nombre}</div>
+            ${alimento.regla_sustitucion ? 
+                `<div class="alimento-info"><i class="fas fa-exchange-alt"></i> ${alimento.regla_sustitucion}</div>` : 
+                ''}
+        `;
+        
+        return div;
+    }
+    
+    async function loadStats() {
+        try {
+            const response = await fetch('http://localhost:3000/api/estadisticas');
+            
+            if (!response.ok) {
+                throw new Error(`Error HTTP: ${response.status}`);
+            }
+            
+            const data = await response.json();
+            
+            if (data.success) {
+                displayStats(data.estadisticas);
+            }
+            
+        } catch (error) {
+            console.error('Error al cargar estadísticas:', error);
+        }
+    }
+    
+    function displayStats(estadisticas) {
+        statsGrid.innerHTML = '';
+        
+        // Estadística de total de alimentos
+        const totalStat = document.createElement('div');
+        totalStat.className = 'stat-item';
+        totalStat.innerHTML = `
+            <div class="stat-value">${estadisticas.totalAlimentos}</div>
+            <div class="stat-label">Alimentos en la base de datos</div>
+        `;
+        statsGrid.appendChild(totalStat);
+        
+        // Estadísticas por grupo
+        estadisticas.porGrupo.forEach(grupo => {
+            const statItem = document.createElement('div');
+            statItem.className = 'stat-item';
+            statItem.innerHTML = `
+                <div class="stat-value">${grupo.total}</div>
+                <div class="stat-label">${grupo.nombre}</div>
+            `;
+            statsGrid.appendChild(statItem);
+        });
+    }
+    
+    function showLoading(show) {
+        if (show) {
+            loadingElement.style.display = 'flex';
+            platoResult.style.display = 'none';
+        } else {
+            loadingElement.style.display = 'none';
+        }
+    }
+    
+    // Mensaje de bienvenida
+    console.log('Aplicación de Generador de Platos cargada correctamente');
+    console.log('Selecciona un tiempo de comida y haz clic en "Generar Plato Aleatorio"');
+});

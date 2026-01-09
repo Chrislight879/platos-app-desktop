@@ -1,175 +1,174 @@
-const { getDatabase } = require('../database');
+const { query, get } = require('../database');
 
 class PlatoController {
-    // Obtener todos los tiempos de comida
-    static getTiempos(req, res) {
+    // Obtener plato aleatorio para un tiempo específico
+    static async generarPlato(tiempoId) {
         try {
-            const db = getDatabase();
-            const tiempos = db.getTiempos();
-            res.json(tiempos);
-        } catch (error) {
-            res.status(500).json({ error: error.message });
-        }
-    }
-
-    // Obtener todos los grupos
-    static getGrupos(req, res) {
-        try {
-            const db = getDatabase();
-            const grupos = db.getGrupos();
-            res.json(grupos);
-        } catch (error) {
-            res.status(500).json({ error: error.message });
-        }
-    }
-
-    // Obtener comidas por grupo
-    static getComidasPorGrupo(req, res) {
-        try {
-            const grupoId = parseInt(req.params.id);
-            if (isNaN(grupoId) || grupoId < 1 || grupoId > 6) {
-                return res.status(400).json({ error: 'ID de grupo inválido' });
+            // Obtener las porciones requeridas para este tiempo
+            const porciones = await query(
+                'SELECT g.id as grupo_id, g.nombre as grupo_nombre, pt.porciones ' +
+                'FROM porciones_tiempo pt ' +
+                'JOIN grupos g ON pt.grupo_id = g.id ' +
+                'WHERE pt.tiempo_id = ? ' +
+                'ORDER BY g.id',
+                [tiempoId]
+            );
+            
+            const plato = {
+                tiempo: '',
+                alimentos: [],
+                totalPorciones: 0
+            };
+            
+            // Obtener nombre del tiempo
+            const tiempo = await get('SELECT nombre FROM tiempos WHERE id = ?', [tiempoId]);
+            plato.tiempo = tiempo.nombre;
+            
+            // Para cada grupo, obtener alimentos aleatorios según las porciones requeridas
+            for (const porcion of porciones) {
+                const grupoId = porcion.grupo_id;
+                const cantidad = porcion.porciones;
+                
+                // Si es Grupo 1, verificar si el usuario quiere sustitución
+                if (grupoId === 1) {
+                    // 50% de probabilidad de usar sustitución
+                    const usarSustitucion = Math.random() > 0.5;
+                    
+                    if (usarSustitucion) {
+                        // Obtener una regla de sustitución aleatoria
+                        const sustituciones = await query(
+                            'SELECT r.id, r.descripcion ' +
+                            'FROM reglas_sustitucion r ' +
+                            'WHERE r.grupo_origen_id = ?',
+                            [grupoId]
+                        );
+                        
+                        if (sustituciones.length > 0) {
+                            const reglaAleatoria = sustituciones[Math.floor(Math.random() * sustituciones.length)];
+                            
+                            // Obtener los detalles de la sustitución
+                            const detalles = await query(
+                                'SELECT sd.grupo_sustituto_id, sd.porciones, g.nombre as grupo_nombre ' +
+                                'FROM sustituciones_detalle sd ' +
+                                'JOIN grupos g ON sd.grupo_sustituto_id = g.id ' +
+                                'WHERE sd.regla_id = ?',
+                                [reglaAleatoria.id]
+                            );
+                            
+                            // Para cada grupo sustituto, obtener alimentos
+                            for (const detalle of detalles) {
+                                const alimentos = await this.obtenerAlimentosAleatorios(detalle.grupo_sustituto_id, detalle.porciones);
+                                plato.alimentos.push(...alimentos.map(a => ({
+                                    ...a,
+                                    es_sustitucion: true,
+                                    grupo_original: 'Grupo 1',
+                                    regla_sustitucion: reglaAleatoria.descripcion
+                                })));
+                                plato.totalPorciones += detalle.porciones;
+                            }
+                            continue;
+                        }
+                    }
+                }
+                
+                // Obtener alimentos normales para este grupo
+                const alimentos = await this.obtenerAlimentosAleatorios(grupoId, cantidad);
+                plato.alimentos.push(...alimentos);
+                plato.totalPorciones += cantidad;
             }
-
-            const db = getDatabase();
-            const comidas = db.getComidasPorGrupo(grupoId);
-            res.json(comidas);
+            
+            return plato;
+            
         } catch (error) {
-            res.status(500).json({ error: error.message });
+            console.error('Error en generarPlato:', error);
+            throw error;
         }
     }
-
-    // Generar plato
-    static generarPlato(req, res) {
+    
+    // Obtener alimentos aleatorios de un grupo específico
+    static async obtenerAlimentosAleatorios(grupoId, cantidad) {
         try {
-            const tiempoId = parseInt(req.query.tiempo) || 1;
-            const aplicarSustituciones = req.query.sustituciones !== 'false';
+            // Obtener todos los alimentos del grupo
+            const alimentos = await query(
+                'SELECT id, nombre, grupo_id FROM comidas WHERE grupo_id = ?',
+                [grupoId]
+            );
             
-            if (tiempoId < 1 || tiempoId > 3) {
-                return res.status(400).json({ error: 'Tiempo debe ser 1, 2 o 3' });
-            }
-
-            const db = getDatabase();
-            const plato = db.generarPlato(tiempoId, aplicarSustituciones);
+            // Si hay menos alimentos que la cantidad requerida, seleccionar con repetición
+            const seleccionados = [];
             
-            // Agregar información nutricional estimada
-            const infoNutricional = PlatoController.calcularInfoNutricional(plato);
-            plato.info_nutricional = infoNutricional;
-            
-            res.json(plato);
-        } catch (error) {
-            res.status(500).json({ error: error.message });
-        }
-    }
-
-    // Generar plato aleatorio
-    static generarPlatoAleatorio(req, res) {
-        try {
-            const tiempoId = Math.floor(Math.random() * 3) + 1;
-            const aplicarSustituciones = Math.random() > 0.5;
-            
-            const db = getDatabase();
-            const plato = db.generarPlato(tiempoId, aplicarSustituciones);
-            
-            // Agregar información nutricional estimada
-            const infoNutricional = PlatoController.calcularInfoNutricional(plato);
-            plato.info_nutricional = infoNutricional;
-            
-            res.json(plato);
-        } catch (error) {
-            res.status(500).json({ error: error.message });
-        }
-    }
-
-    // Obtener sustituciones del Grupo 1
-    static getSustitucionesGrupo1(req, res) {
-        try {
-            const db = getDatabase();
-            const sustituciones = db.getSustitucionesGrupo1();
-            res.json(sustituciones);
-        } catch (error) {
-            res.status(500).json({ error: error.message });
-        }
-    }
-
-    // Agregar nueva comida
-    static agregarComida(req, res) {
-        try {
-            const { nombre, grupo_id } = req.body;
-            
-            if (!nombre || !grupo_id) {
-                return res.status(400).json({ 
-                    error: 'Nombre y grupo_id son requeridos' 
+            for (let i = 0; i < cantidad; i++) {
+                if (alimentos.length === 0) {
+                    break;
+                }
+                
+                const indiceAleatorio = Math.floor(Math.random() * alimentos.length);
+                const alimento = alimentos[indiceAleatorio];
+                
+                seleccionados.push({
+                    id: alimento.id,
+                    nombre: alimento.nombre,
+                    grupo_id: alimento.grupo_id,
+                    es_sustitucion: false
                 });
+                
+                // Si queremos evitar repeticiones, podemos comentar esta línea:
+                // alimentos.splice(indiceAleatorio, 1);
             }
-
-            if (grupo_id < 1 || grupo_id > 6) {
-                return res.status(400).json({ 
-                    error: 'grupo_id debe estar entre 1 y 6' 
-                });
-            }
-
-            const db = getDatabase();
-            const id = db.agregarComida(nombre, grupo_id);
             
-            res.json({ 
-                id, 
-                nombre, 
-                grupo_id, 
-                message: 'Comida agregada correctamente' 
-            });
+            return seleccionados;
+            
         } catch (error) {
-            res.status(500).json({ error: error.message });
+            console.error('Error en obtenerAlimentosAleatorios:', error);
+            return [];
         }
     }
-
+    
+    // Obtener todos los tiempos disponibles
+    static async obtenerTiempos() {
+        try {
+            return await query('SELECT id, nombre FROM tiempos ORDER BY id');
+        } catch (error) {
+            console.error('Error en obtenerTiempos:', error);
+            return [];
+        }
+    }
+    
     // Obtener estadísticas
-    static getEstadisticas(req, res) {
+    static async obtenerEstadisticas() {
         try {
-            const db = getDatabase();
-            const stats = db.obtenerEstadisticas();
-            res.json(stats);
+            const totalAlimentos = await get('SELECT COUNT(*) as total FROM comidas');
+            const totalPorGrupo = await query(
+                'SELECT g.nombre, COUNT(c.id) as total ' +
+                'FROM grupos g LEFT JOIN comidas c ON g.id = c.grupo_id ' +
+                'GROUP BY g.id, g.nombre ' +
+                'ORDER BY g.id'
+            );
+            
+            return {
+                totalAlimentos: totalAlimentos.total,
+                porGrupo: totalPorGrupo
+            };
         } catch (error) {
-            res.status(500).json({ error: error.message });
+            console.error('Error en obtenerEstadisticas:', error);
+            return { totalAlimentos: 0, porGrupo: [] };
         }
     }
-
-    // Calcular información nutricional estimada
-    static calcularInfoNutricional(plato) {
-        // Valores nutricionales estimados por grupo
-        const valoresPorGrupo = {
-            1: { calorias: 80, proteinas: 8, carbohidratos: 12, grasas: 0 }, // Lácteos
-            2: { calorias: 70, proteinas: 7, carbohidratos: 0, grasas: 5 },   // Proteínas
-            3: { calorias: 60, proteinas: 1, carbohidratos: 15, grasas: 0 },  // Frutas
-            4: { calorias: 70, proteinas: 2, carbohidratos: 15, grasas: 0 },  // Cereales
-            5: { calorias: 25, proteinas: 2, carbohidratos: 5, grasas: 0 },   // Verduras
-            6: { calorias: 45, proteinas: 0, carbohidratos: 0, grasas: 5 }    // Grasas
-        };
-
-        let total = { calorias: 0, proteinas: 0, carbohidratos: 0, grasas: 0 };
-        
-        // Contar ocurrencias de cada grupo en el plato
-        const conteoGrupos = {};
-        plato.plato.forEach(item => {
-            // Determinar grupo basado en el nombre del grupo
-            const grupoMatch = item.grupo.match(/Grupo (\d)/);
-            if (grupoMatch) {
-                const grupoId = parseInt(grupoMatch[1]);
-                conteoGrupos[grupoId] = (conteoGrupos[grupoId] || 0) + 1;
+    
+    // Insertar alimentos (para poblar la base de datos)
+    static async insertarAlimentos(alimentos) {
+        try {
+            for (const alimento of alimentos) {
+                await query(
+                    'INSERT OR IGNORE INTO comidas (nombre, grupo_id) VALUES (?, ?)',
+                    [alimento.nombre, alimento.grupo_id]
+                );
             }
-        });
-
-        // Sumar valores nutricionales
-        for (const [grupoId, cantidad] of Object.entries(conteoGrupos)) {
-            if (valoresPorGrupo[grupoId]) {
-                total.calorias += valoresPorGrupo[grupoId].calorias * cantidad;
-                total.proteinas += valoresPorGrupo[grupoId].proteinas * cantidad;
-                total.carbohidratos += valoresPorGrupo[grupoId].carbohidratos * cantidad;
-                total.grasas += valoresPorGrupo[grupoId].grasas * cantidad;
-            }
+            return { success: true, message: 'Alimentos insertados correctamente' };
+        } catch (error) {
+            console.error('Error en insertarAlimentos:', error);
+            return { success: false, message: error.message };
         }
-
-        return total;
     }
 }
 

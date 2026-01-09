@@ -3,217 +3,97 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Generador de Platos Saludables</title>
+    <title>Generador de Platos de Dieta - 1500 Calorías</title>
     <link rel="stylesheet" href="style.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 </head>
 <body>
-    <div class="app-container">
-        <!-- Header -->
-        <header class="app-header">
-            <div class="header-content">
-                <div class="logo">
-                    <i class="fas fa-utensils"></i>
-                    <h1>Generador de Platos</h1>
-                </div>
-                <div class="app-status">
-                    <span id="status" class="status-connected">
-                        <i class="fas fa-circle"></i> Conectado
-                    </span>
-                </div>
-            </div>
+    <div class="container">
+        <header>
+            <h1><i class="fas fa-utensils"></i> Generador de Platos de Dieta</h1>
+            <p class="subtitle">Dieta de 1500 calorías - 56g proteínas - <300mg colesterol</p>
         </header>
-
-        <!-- Main Content -->
-        <main class="app-main">
-            <!-- Panel de Control -->
-            <section class="control-section">
-                <div class="section-card">
-                    <h2><i class="fas fa-clock"></i> Tiempo de Comida</h2>
+        
+        <main>
+            <div class="control-panel">
+                <div class="time-selector">
+                    <h2><i class="fas fa-clock"></i> Selecciona el tiempo de comida:</h2>
                     <div class="time-buttons">
                         <button class="time-btn active" data-time="1">
-                            <i class="fas fa-sun"></i>
-                            <span>Desayuno</span>
-                            <small>Doble porción de cereales</small>
+                            <i class="fas fa-sun"></i> Desayuno
                         </button>
                         <button class="time-btn" data-time="2">
-                            <i class="fas fa-sun"></i>
-                            <span>Almuerzo</span>
-                            <small>Comida completa</small>
+                            <i class="fas fa-cloud-sun"></i> Almuerzo
                         </button>
                         <button class="time-btn" data-time="3">
-                            <i class="fas fa-moon"></i>
-                            <span>Cena</span>
-                            <small>Ligera y nutritiva</small>
+                            <i class="fas fa-moon"></i> Cena
                         </button>
+                    </div>
+                </div>
+                
+                <div class="action-buttons">
+                    <button id="generate-btn" class="btn generate-btn">
+                        <i class="fas fa-random"></i> Generar Plato Aleatorio
+                    </button>
+                    <button id="regenerate-btn" class="btn regenerate-btn" disabled>
+                        <i class="fas fa-redo"></i> Generar Otro
+                    </button>
+                </div>
+            </div>
+            
+            <div class="result-container">
+                <div class="loading" id="loading">
+                    <div class="spinner"></div>
+                    <p>Generando tu plato...</p>
+                </div>
+                
+                <div class="plato-result" id="plato-result">
+                    <div class="plato-header">
+                        <h2 id="plato-tiempo">Desayuno</h2>
+                        <div class="porciones-info">
+                            <span id="total-porciones">0 porciones</span>
+                        </div>
                     </div>
                     
-                    <div class="action-buttons">
-                        <button id="generateBtn" class="btn-primary">
-                            <i class="fas fa-magic"></i> Generar Plato
-                        </button>
-                        <button id="randomBtn" class="btn-secondary">
-                            <i class="fas fa-random"></i> Aleatorio
-                        </button>
+                    <div class="alimentos-list" id="alimentos-list">
+                        <!-- Los alimentos se mostrarán aquí -->
                     </div>
-                </div>
-
-                <div class="section-card">
-                    <h2><i class="fas fa-sliders-h"></i> Opciones</h2>
-                    <div class="options">
-                        <label class="option-item">
-                            <input type="checkbox" id="autoGenerate" checked>
-                            <span>Generar automáticamente</span>
-                        </label>
-                        <label class="option-item">
-                            <input type="checkbox" id="showNutrition" checked>
-                            <span>Mostrar información nutricional</span>
-                        </label>
-                        <label class="option-item">
-                            <input type="checkbox" id="includeExtras" checked>
-                            <span>Incluir alimentos complementarios</span>
-                        </label>
-                    </div>
-                </div>
-            </section>
-
-            <!-- Plato Generado -->
-            <section class="plato-section">
-                <div class="section-header">
-                    <h2><i class="fas fa-concierge-bell"></i> Plato Generado</h2>
-                    <div class="time-display">
-                        <span id="currentTime">Desayuno</span>
-                    </div>
-                </div>
-
-                <div class="plato-container">
-                    <div id="platoPlaceholder" class="plato-placeholder">
-                        <div class="placeholder-content">
-                            <i class="fas fa-utensil-spoon"></i>
-                            <h3>¡Genera tu primer plato!</h3>
-                            <p>Selecciona un tiempo de comida y haz clic en "Generar Plato"</p>
-                        </div>
-                    </div>
-
-                    <div id="platoContent" class="plato-content" style="display: none;">
-                        <div class="plato-header">
-                            <h3 id="platoTitle">Plato de Desayuno</h3>
-                            <div class="plato-meta" id="platoMeta">
-                                <span><i class="fas fa-leaf"></i> Balanceado</span>
-                                <span><i class="fas fa-fire"></i> 450 kcal aprox.</span>
+                    
+                    <div class="diet-info">
+                        <h3><i class="fas fa-info-circle"></i> Información de la dieta</h3>
+                        <p>Este plato sigue la dieta de 1500 calorías con las porciones recomendadas para cada grupo alimenticio.</p>
+                        <div class="info-grid">
+                            <div class="info-item">
+                                <i class="fas fa-fire"></i>
+                                <span>1500 Calorías</span>
+                            </div>
+                            <div class="info-item">
+                                <i class="fas fa-drumstick-bite"></i>
+                                <span>56g Proteínas</span>
+                            </div>
+                            <div class="info-item">
+                                <i class="fas fa-heart"></i>
+                                <span><300mg Colesterol</span>
                             </div>
                         </div>
-
-                        <div class="plato-items" id="platoItems">
-                            <!-- Los items del plato se insertan aquí -->
-                        </div>
-
-                        <div class="plato-summary" id="platoSummary">
-                            <!-- Resumen del plato -->
-                        </div>
                     </div>
-                </div>
-
-                <div class="plato-actions">
-                    <button id="saveBtn" class="btn-action" disabled>
-                        <i class="fas fa-save"></i> Guardar
-                    </button>
-                    <button id="printBtn" class="btn-action" disabled>
-                        <i class="fas fa-print"></i> Imprimir
-                    </button>
-                    <button id="exportBtn" class="btn-action" disabled>
-                        <i class="fas fa-file-export"></i> Exportar
-                    </button>
-                    <button id="shareBtn" class="btn-action" disabled>
-                        <i class="fas fa-share"></i> Compartir
-                    </button>
-                </div>
-            </section>
-
-            <!-- Información Nutricional -->
-            <section class="nutrition-section">
-                <h2><i class="fas fa-apple-alt"></i> Información Nutricional</h2>
-                <div class="nutrition-grid" id="nutritionGrid">
-                    <div class="nutrition-card">
-                        <div class="nutrition-icon">
-                            <i class="fas fa-fire"></i>
-                        </div>
-                        <div class="nutrition-value" id="calories">--</div>
-                        <div class="nutrition-label">Calorías</div>
-                    </div>
-                    <div class="nutrition-card">
-                        <div class="nutrition-icon">
-                            <i class="fas fa-drumstick-bite"></i>
-                        </div>
-                        <div class="nutrition-value" id="protein">--</div>
-                        <div class="nutrition-label">Proteína (g)</div>
-                    </div>
-                    <div class="nutrition-card">
-                        <div class="nutrition-icon">
-                            <i class="fas fa-bread-slice"></i>
-                        </div>
-                        <div class="nutrition-value" id="carbs">--</div>
-                        <div class="nutrition-label">Carbohidratos (g)</div>
-                    </div>
-                    <div class="nutrition-card">
-                        <div class="nutrition-icon">
-                            <i class="fas fa-oil-can"></i>
-                        </div>
-                        <div class="nutrition-value" id="fat">--</div>
-                        <div class="nutrition-label">Grasas (g)</div>
-                    </div>
-                </div>
-            </section>
-        </main>
-
-        <!-- Footer -->
-        <footer class="app-footer">
-            <div class="footer-content">
-                <p>Sistema de Generación de Platos Saludables © 2024</p>
-                <div class="footer-links">
-                    <button id="aboutBtn" class="btn-link">
-                        <i class="fas fa-info-circle"></i> Acerca de
-                    </button>
-                    <button id="helpBtn" class="btn-link">
-                        <i class="fas fa-question-circle"></i> Ayuda
-                    </button>
-                    <button id="statsBtn" class="btn-link">
-                        <i class="fas fa-chart-bar"></i> Estadísticas
-                    </button>
                 </div>
             </div>
+            
+            <div class="stats-container">
+                <h2><i class="fas fa-chart-bar"></i> Estadísticas</h2>
+                <div class="stats-grid" id="stats-grid">
+                    <!-- Las estadísticas se cargarán aquí -->
+                </div>
+            </div>
+        </main>
+        
+        <footer>
+            <p>© 2024 Generador de Platos de Dieta - Basado en lista de intercambios de alimentos</p>
+            <p class="footer-note">Desarrollado para dieta de 1500 calorías con 6 grupos alimenticios</p>
         </footer>
     </div>
-
-    <!-- Modal Acerca De -->
-    <div id="aboutModal" class="modal">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h3><i class="fas fa-info-circle"></i> Acerca de la Aplicación</h3>
-                <button class="modal-close">&times;</button>
-            </div>
-            <div class="modal-body">
-                <p>Esta aplicación genera platos de comida balanceados basados en grupos alimenticios.</p>
-                <div class="features">
-                    <h4>Características:</h4>
-                    <ul>
-                        <li><i class="fas fa-check"></i> Generación automática de platos</li>
-                        <li><i class="fas fa-check"></i> Base de datos con +25 alimentos</li>
-                        <li><i class="fas fa-check"></i> Sistema de porciones inteligente</li>
-                        <li><i class="fas fa-check"></i> Información nutricional estimada</li>
-                        <li><i class="fas fa-check"></i> Funciona completamente offline</li>
-                        <li><i class="fas fa-check"></i> No requiere instalación de servidores</li>
-                    </ul>
-                </div>
-                <div class="app-info">
-                    <p><strong>Versión:</strong> 1.0.0</p>
-                    <p><strong>Tecnología:</strong> Node.js + SQLite</p>
-                    <p><strong>Base de datos:</strong> SQLite (archivo local)</p>
-                </div>
-            </div>
-        </div>
-    </div>
-
+    
     <script src="app.js"></script>
 </body>
 </html>

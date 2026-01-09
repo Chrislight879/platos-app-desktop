@@ -1,87 +1,142 @@
-#!/usr/bin/env node
-
-const { PlatosDatabase } = require('./src/database');
+const sqlite3 = require('sqlite3').verbose();
 const path = require('path');
 const fs = require('fs');
 
-console.log('================================');
-console.log('   INICIALIZADOR DE BASE DE DATOS');
-console.log('   Generador de Platos Saludables');
-console.log('================================\n');
+const dbPath = path.join(__dirname, 'dieta.db');
 
-try {
-    // Crear instancia de la base de datos (esto inicializa todo)
-    const db = new PlatosDatabase();
-    
-    console.log('✅ Base de datos inicializada correctamente\n');
-    
-    // Mostrar información detallada
-    console.log('📊 INFORMACIÓN DE LA BASE DE DATOS:');
-    console.log('====================================');
-    
-    // Obtener estadísticas
-    const stats = db.obtenerEstadisticas();
-    console.log(`   Total grupos: ${stats.total_grupos}`);
-    console.log(`   Total comidas: ${stats.total_comidas}`);
-    console.log(`   Total tiempos: ${stats.total_tiempos}`);
-    console.log(`   Total reglas de sustitución: ${stats.total_sustituciones}\n`);
-    
-    // Mostrar grupos
-    console.log('📋 GRUPOS ALIMENTICIOS:');
-    console.log('========================');
-    const grupos = db.getGrupos();
-    grupos.forEach(grupo => {
-        const comidas = db.getComidasPorGrupo(grupo.id);
-        console.log(`   ${grupo.nombre}: ${comidas.length} alimentos`);
-    });
-    
-    console.log('\n⏰ TIEMPOS DE COMIDA:');
-    console.log('=====================');
-    const tiempos = db.getTiempos();
-    tiempos.forEach(tiempo => {
-        const porciones = db.getPorcionesTiempo(tiempo.id);
-        console.log(`   ${tiempo.nombre}: ${porciones.length} grupos con porciones definidas`);
-    });
-    
-    console.log('\n🔄 SUSTITUCIONES DEL GRUPO 1:');
-    console.log('=============================');
-    const sustituciones = db.getSustitucionesGrupo1();
-    sustituciones.forEach(regla => {
-        console.log(`   ${regla.descripcion}: ${regla.sustitucion}`);
-    });
-    
-    console.log('\n📍 UBICACIÓN DE LA BASE DE DATOS:');
-    console.log('=================================');
-    const dbPath = path.join(process.env.APPDATA || 
-                            path.join(process.env.HOME, '.platos-app'), 
-                            'platos.db');
-    console.log(`   ${dbPath}`);
-    console.log(`   Existe: ${fs.existsSync(dbPath) ? '✅ Sí' : '❌ No'}`);
-    
-    // Probar generación de platos
-    console.log('\n🍽️  PRUEBA DE GENERACIÓN DE PLATOS:');
-    console.log('==================================');
-    
-    for (let i = 1; i <= 3; i++) {
-        const tiempo = tiempos.find(t => t.id === i);
-        console.log(`\n   ${tiempo.nombre}:`);
-        const plato = db.generarPlato(i, true);
-        plato.plato.forEach((item, index) => {
-            const tipo = item.es_sustitucion ? ' (Sustitución)' : 
-                        item.es_complementario ? ' (Complementario)' : '';
-            console.log(`     ${index + 1}. ${item.grupo}: ${item.alimento}${tipo}`);
-        });
-    }
-    
-    db.close();
-    
-    console.log('\n✅ Inicialización completada exitosamente');
-    console.log('\n📝 Para usar la aplicación:');
-    console.log('   1. Ejecuta: node src/server.js');
-    console.log('   2. Abre: http://localhost:3000');
-    console.log('   3. ¡Comienza a generar platos!');
-    
-} catch (error) {
-    console.error('❌ Error durante la inicialización:', error.message);
-    process.exit(1);
+// Eliminar base de datos existente
+if (fs.existsSync(dbPath)) {
+    fs.unlinkSync(dbPath);
+    console.log('Base de datos anterior eliminada');
 }
+
+const db = new sqlite3.Database(dbPath);
+
+// Crear tablas
+db.serialize(() => {
+    console.log('Creando base de datos...');
+    
+    // Tabla grupos
+    db.run(`CREATE TABLE grupos (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        nombre TEXT NOT NULL
+    )`);
+    
+    // Tabla tiempos
+    db.run(`CREATE TABLE tiempos (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        nombre TEXT NOT NULL
+    )`);
+    
+    // Tabla comidas
+    db.run(`CREATE TABLE comidas (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        nombre TEXT NOT NULL,
+        grupo_id INTEGER,
+        FOREIGN KEY (grupo_id) REFERENCES grupos(id)
+    )`);
+    
+    // Tabla reglas_sustitucion
+    db.run(`CREATE TABLE reglas_sustitucion (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        grupo_origen_id INTEGER NOT NULL,
+        descripcion TEXT NOT NULL,
+        FOREIGN KEY (grupo_origen_id) REFERENCES grupos(id)
+    )`);
+    
+    // Tabla sustituciones_detalle
+    db.run(`CREATE TABLE sustituciones_detalle (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        regla_id INTEGER NOT NULL,
+        grupo_sustituto_id INTEGER NOT NULL,
+        porciones INTEGER DEFAULT 1,
+        FOREIGN KEY (regla_id) REFERENCES reglas_sustitucion(id),
+        FOREIGN KEY (grupo_sustituto_id) REFERENCES grupos(id),
+        UNIQUE(regla_id, grupo_sustituto_id)
+    )`);
+    
+    // Tabla porciones_tiempo
+    db.run(`CREATE TABLE porciones_tiempo (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        tiempo_id INTEGER NOT NULL,
+        grupo_id INTEGER NOT NULL,
+        porciones INTEGER DEFAULT 1,
+        FOREIGN KEY (tiempo_id) REFERENCES tiempos(id),
+        FOREIGN KEY (grupo_id) REFERENCES grupos(id),
+        UNIQUE(tiempo_id, grupo_id)
+    )`);
+    
+    console.log('Tablas creadas...');
+    
+    // Insertar datos
+    const insertData = () => {
+        // Insertar grupos
+        const grupos = [
+            ['Grupo 1'],
+            ['Grupo 2'],
+            ['Grupo 3'],
+            ['Grupo 4'],
+            ['Grupo 5'],
+            ['Grupo 6']
+        ];
+        
+        const insertGrupo = db.prepare('INSERT INTO grupos (nombre) VALUES (?)');
+        grupos.forEach(grupo => {
+            insertGrupo.run(grupo);
+        });
+        insertGrupo.finalize();
+        
+        // Insertar tiempos
+        const tiempos = [
+            ['Desayuno'],
+            ['Almuerzo'],
+            ['Cena']
+        ];
+        
+        const insertTiempo = db.prepare('INSERT INTO tiempos (nombre) VALUES (?)');
+        tiempos.forEach(tiempo => {
+            insertTiempo.run(tiempo);
+        });
+        insertTiempo.finalize();
+        
+        // Insertar porciones por tiempo (Dieta 1500 calorías)
+        const porciones = [
+            // Desayuno
+            [1, 1, 1], [1, 2, 1], [1, 3, 1], [1, 4, 2], [1, 5, 1], [1, 6, 1],
+            // Almuerzo
+            [2, 2, 2], [2, 3, 1], [2, 4, 3], [2, 5, 1], [2, 6, 1],
+            // Cena
+            [3, 2, 1], [3, 3, 1], [3, 4, 2], [3, 5, 1], [3, 6, 1]
+        ];
+        
+        const insertPorcion = db.prepare('INSERT INTO porciones_tiempo (tiempo_id, grupo_id, porciones) VALUES (?, ?, ?)');
+        porciones.forEach(porcion => {
+            insertPorcion.run(porcion);
+        });
+        insertPorcion.finalize();
+        
+        // Insertar sustituciones del Grupo 1
+        db.run("INSERT INTO reglas_sustitucion (grupo_origen_id, descripcion) VALUES (1, 'Sustitución por Grupo 2 + Grupo 3')");
+        db.run("INSERT INTO reglas_sustitucion (grupo_origen_id, descripcion) VALUES (1, 'Sustitución por Grupo 2 + Grupo 4')");
+        
+        // Obtener IDs de las reglas recién insertadas
+        db.get("SELECT last_insert_rowid() as id", (err, row) => {
+            const regla1Id = row.id - 1;
+            const regla2Id = row.id;
+            
+            // Detalles de sustituciones
+            db.run(`INSERT INTO sustituciones_detalle (regla_id, grupo_sustituto_id, porciones) VALUES (${regla1Id}, 2, 1)`);
+            db.run(`INSERT INTO sustituciones_detalle (regla_id, grupo_sustituto_id, porciones) VALUES (${regla1Id}, 3, 1)`);
+            db.run(`INSERT INTO sustituciones_detalle (regla_id, grupo_sustituto_id, porciones) VALUES (${regla2Id}, 2, 1)`);
+            db.run(`INSERT INTO sustituciones_detalle (regla_id, grupo_sustituto_id, porciones) VALUES (${regla2Id}, 4, 1)`);
+        });
+        
+        console.log('Datos básicos insertados...');
+        console.log('¡Base de datos inicializada correctamente!');
+    };
+    
+    // Pequeño delay para asegurar que las tablas se crearon
+    setTimeout(insertData, 100);
+});
+
+db.close();
