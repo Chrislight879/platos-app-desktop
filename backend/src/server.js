@@ -1,637 +1,412 @@
-// Variables globales
-let platoActual = null;
-let tiempoActual = 1;
-let alimentosPorGrupo = {};
-let alimentoSeleccionado = null;
-let grupoSeleccionado = null;
+const express = require('express');
+const path = require('path');
+const app = express();
+const PORT = 3000;
 
-// Inicialización cuando el DOM esté cargado
-document.addEventListener('DOMContentLoaded', function() {
-    console.log('🍽️ Inicializando aplicación...');
-    inicializarApp();
-    setupEventListeners();
+// Configurar middleware para logs
+app.use((req, res, next) => {
+    console.log(`[${new Date().toLocaleTimeString()}] ${req.method} ${req.url}`);
+    next();
 });
 
-function inicializarApp() {
-    // Mostrar información de grupos
-    mostrarGrupos();
-    
-    // Cargar datos iniciales
-    cargarDatosIniciales();
-    
-    // Verificar servidor
-    verificarServidor();
+// IMPORTANTE: Servir archivos estáticos PRIMERO
+app.use(express.static(path.join(__dirname, '..', '..', 'frontend')));
+
+// Configurar middleware para JSON
+app.use(express.json());
+
+// Configurar CORS para permitir todas las solicitudes
+app.use((req, res, next) => {
+    res.header('Access-Control-Allow-Origin', '*');
+    res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept');
+    next();
+});
+
+// Datos de la base de datos integrados en el código
+const grupos = [
+    { id: 1, nombre: 'Grupo 1: Lácteos' },
+    { id: 2, nombre: 'Grupo 2: Proteínas' },
+    { id: 3, nombre: 'Grupo 3: Frutas' },
+    { id: 4, nombre: 'Grupo 4: Cereales' },
+    { id: 5, nombre: 'Grupo 5: Verduras' },
+    { id: 6, nombre: 'Grupo 6: Grasas' }
+];
+
+const tiempos = [
+    { id: 1, nombre: 'Desayuno' },
+    { id: 2, nombre: 'Almuerzo' },
+    { id: 3, nombre: 'Cena' }
+];
+
+// Porciones por tiempo (dieta 1500 calorías)
+const porcionesTiempo = {
+    1: [ // Desayuno
+        { grupo_id: 1, porciones: 1 },
+        { grupo_id: 2, porciones: 1 },
+        { grupo_id: 3, porciones: 1 },
+        { grupo_id: 4, porciones: 2 },
+        { grupo_id: 5, porciones: 1 },
+        { grupo_id: 6, porciones: 1 }
+    ],
+    2: [ // Almuerzo
+        { grupo_id: 2, porciones: 2 },
+        { grupo_id: 3, porciones: 1 },
+        { grupo_id: 4, porciones: 3 },
+        { grupo_id: 5, porciones: 1 },
+        { grupo_id: 6, porciones: 1 }
+    ],
+    3: [ // Cena
+        { grupo_id: 2, porciones: 1 },
+        { grupo_id: 3, porciones: 1 },
+        { grupo_id: 4, porciones: 2 },
+        { grupo_id: 5, porciones: 1 },
+        { grupo_id: 6, porciones: 1 }
+    ]
+};
+
+// Alimentos por grupo
+const comidas = {
+    1: [ // Grupo 1 - Lácteos
+        'una taza de leche descremada',
+        'un vasito de yogurt Light',
+        'media taza de leche evaporada',
+        'cucharada y media de leche en polvo'
+    ],
+    2: [ // Grupo 2 - Proteínas
+        'una onza de carne de res con grasa',
+        'dos onzas de carne de res magra',
+        'dos onzas de carne de pollo sin piel',
+        'una onza de pato sin piel',
+        'dos onzas de pavo sin piel',
+        'una onza de cerdo con grasa',
+        'dos onzas de cerdo sin grasa',
+        'una onza de ternera',
+        'dos rebanadas pequeñas de jamón',
+        'una onza de lengua',
+        'media salchicha mediana',
+        'dos onzas de pescado',
+        'dos camarones medianos',
+        'dos onzas de langosta',
+        'un cuarto de lata de atún en agua',
+        'media taza de carne de cangrejo',
+        'dos sardinas grandes',
+        'cinco ostras',
+        'cinco conchas',
+        'una onza de queso fresco',
+        'dos cucharadas de requesón',
+        'una y media rebanada de queso Kraft',
+        'una onza de queso parmesano',
+        'una onza de queso mozzarella',
+        'dos cucharadas de queso cottage',
+        'una onza de queso capa roja',
+        'una onza de queso roquefort',
+        'una onza de queso suizo',
+        'dos claras de huevo'
+    ],
+    3: [ // Grupo 3 - Frutas
+        'una manzana mediana',
+        'una naranja mediana',
+        'una mandarina mediana',
+        'media toronja mediana',
+        'un mango pequeño',
+        'una jícama pequeña',
+        'una lima',
+        'una pera pequeña',
+        'un higo fresco grande',
+        'dos guayabas',
+        'medio guineo de 15 cm',
+        'un cuarto de zapote',
+        'diez cerezas',
+        'una taza de fresas',
+        'dos ciruelas frescas',
+        'quince uvas pequeñas',
+        'doce uvas grandes',
+        'una rebanada de sandía',
+        'una rebanada de piña',
+        'una rebanada de melón',
+        'tres jocotes',
+        'un marañón mediano',
+        'tres marañones japoneses pequeños',
+        '40 nances',
+        'un durazno grande',
+        'un melocotón pequeño',
+        'un kivi',
+        '¼ anona',
+        '2 higos frescos pequeños',
+        'dos ciruelas pasas',
+        '¼ de mamey mediano',
+        '12 manrones (talpajocotes)',
+        '1/3 rebanada de papaya',
+        'media taza pequeña de jugo de naranja, piña, manzana, uvas o toronja',
+        'una taza de jugo de tomate'
+    ],
+    4: [ // Grupo 4 - Cereales
+        'una rebanada de pan de caja',
+        'una tortilla pequeña',
+        'un pan francés pequeño',
+        'una rebanada de pan integral',
+        'medio pan pita (pizza)',
+        'tres cucharadas de arroz',
+        'un pancake mediano',
+        'dos cucharadas de frijoles',
+        'una papa mediana',
+        'tres cucharadas de puré de papas',
+        'tres cuarto de taza de Corn Flakes u otro cereal sin azúcar',
+        'tres cucharadas de avena cocida',
+        'tres cucharadas de garbanzos',
+        'cuatro galletas de soda',
+        '½ taza de yuca',
+        '½ taza de camote',
+        'media taza de fideos cocidos',
+        'dos cucharadas de harina',
+        'dos cucharadas de maicena',
+        'una taza de lorocos',
+        'una taza de arverjas',
+        'una taza de frijol de soya',
+        'un chile verde mediano'
+    ],
+    5: [ // Grupo 5 - Verduras
+        '1/4 de remolacha pequeña',
+        '1/3 de plátano',
+        '½ taza de zanahoria',
+        '½ taza de col de bruselas',
+        '½ taza de ejotes',
+        '½ taza de cebolla',
+        '½ taza de nabos',
+        '½ taza de brócoli',
+        '½ taza de tomates',
+        '½ taza de puerros',
+        '½ taza de maíz dulce',
+        'una taza de chilacayote',
+        'una taza de acelga',
+        'una taza de apio',
+        'una taza de berenjena',
+        'una taza de berro',
+        'una taza de coliflor',
+        'una taza de guizayote',
+        'una taza de guisquil',
+        'una taza de espinaca',
+        'una taza de espárragos',
+        'una taza de hongos',
+        'una taza de lechuga',
+        'una taza de pepino',
+        'una taza de rábano',
+        'una taza de verdolaga',
+        'una taza de flor de isote'
+    ],
+    6: [ // Grupo 6 - Grasas
+        'una cucharadita de aceite',
+        'una cucharadita de crema',
+        'una cucharadita de mantequilla',
+        'una cucharadita de manteca',
+        'una cucharadita de margarina',
+        'una cucharadita de mayonesa',
+        'una cucharadita de queso de mantequilla',
+        'una cucharadita de aderezo de ensalada',
+        'una cucharadita de aceite de oliva',
+        'un cuarto de aguacate pequeño',
+        'una tira de tocino',
+        'seis aceitunas verdes medianas'
+    ]
+};
+
+// Sustituciones para Grupo 1
+const sustituciones = [
+    {
+        descripcion: 'Sustitución por Grupo 2 + Grupo 3',
+        grupos: [2, 3],
+        porciones: [1, 1]
+    },
+    {
+        descripcion: 'Sustitución por Grupo 2 + Grupo 4',
+        grupos: [2, 4],
+        porciones: [1, 1]
+    }
+];
+
+// Función para obtener alimento aleatorio de un grupo
+function getAlimentoAleatorio(grupoId) {
+    const alimentos = comidas[grupoId];
+    if (!alimentos || alimentos.length === 0) {
+        console.log(`❌ No hay alimentos para el grupo ${grupoId}`);
+        return null;
+    }
+    const alimento = alimentos[Math.floor(Math.random() * alimentos.length)];
+    return alimento;
 }
 
-function verificarServidor() {
-    const statusElement = document.getElementById('serverStatus');
+// Función para generar plato - VERSIÓN SIMPLE QUE FUNCIONA
+function generarPlato(tiempoId) {
+    const tiempo = tiempos.find(t => t.id === tiempoId);
+    const porciones = porcionesTiempo[tiempoId];
+    const plato = [];
     
-    fetch('/api/health')
-        .then(response => {
-            if (!response.ok) {
-                throw new Error('Servidor no responde');
-            }
-            return response.json();
-        })
-        .then(data => {
-            statusElement.innerHTML = '<i class="fas fa-circle" style="color: #27ae60;"></i> Servidor conectado';
-            console.log('✅ Servidor conectado:', data);
-        })
-        .catch(error => {
-            statusElement.innerHTML = '<i class="fas fa-circle" style="color: #e74c3c;"></i> Servidor desconectado';
-            console.error('❌ Error conectando al servidor:', error);
+    console.log(`🔸 Generando plato para ${tiempo.nombre}`);
+    
+    for (const porcion of porciones) {
+        // SIEMPRE sustituir Grupo 1 (para mantenerlo simple)
+        if (porcion.grupo_id === 1) {
+            // Elegir aleatoriamente entre las 2 opciones de sustitución
+            const sustitucion = sustituciones[Math.floor(Math.random() * sustituciones.length)];
             
-            // Mostrar mensaje amigable
-            setTimeout(() => {
-                if (document.querySelector('.empty-state')) {
-                    document.querySelector('.empty-state').innerHTML = `
-                        <i class="fas fa-exclamation-triangle" style="color: #e74c3c; font-size: 4rem;"></i>
-                        <h3>Servidor no disponible</h3>
-                        <p>El servidor no está respondiendo. Asegúrate de que:</p>
-                        <ol style="text-align: left; margin-top: 10px;">
-                            <li>El servidor esté ejecutándose</li>
-                            <li>La URL sea http://localhost:3000</li>
-                            <li>No haya conflictos de puerto</li>
-                        </ol>
-                    `;
+            console.log(`  🔄 Sustituyendo lácteos por: ${sustitucion.descripcion}`);
+            
+            for (let i = 0; i < sustitucion.grupos.length; i++) {
+                const grupoId = sustitucion.grupos[i];
+                const alimento = getAlimentoAleatorio(grupoId);
+                if (alimento) {
+                    const grupo = grupos.find(g => g.id === grupoId);
+                    plato.push({
+                        grupo: grupo.nombre,
+                        alimento: alimento,
+                        porcion: `${sustitucion.porciones[i]} porción`,
+                        es_sustitucion: true,
+                        sustituye_a: 'Grupo 1: Lácteos'
+                    });
                 }
-            }, 1000);
-        });
-}
-
-function cargarDatosIniciales() {
-    // Cargar tiempos de comida
-    fetch('/api/tiempos')
-        .then(response => response.json())
-        .then(tiempos => {
-            console.log('⏰ Tiempos cargados:', tiempos);
-        })
-        .catch(error => {
-            console.error('Error cargando tiempos:', error);
-        });
-    
-    // Cargar estadísticas
-    cargarEstadisticas();
-    
-    // Mostrar sustituciones
-    mostrarSustituciones();
-}
-function mostrarGrupos() {
-    const grupos = [
-        { id: 1, nombre: 'Grupo 1: Lácteos', color: '#3498db' },
-        { id: 2, nombre: 'Grupo 2: Proteínas', color: '#e74c3c' },
-        { id: 3, nombre: 'Grupo 3: Frutas', color: '#2ecc71' },
-        { id: 4, nombre: 'Grupo 4: Cereales', color: '#f39c12' },
-        { id: 5, nombre: 'Grupo 5: Verduras', color: '#9b59b6' },
-        { id: 6, nombre: 'Grupo 6: Grasas', color: '#e67e22' }
-    ];
-    
-    const gruposInfo = document.getElementById('gruposInfo');
-    const gruposSelector = document.getElementById('gruposSelector');
-    
-    gruposInfo.innerHTML = '';
-    gruposSelector.innerHTML = '';
-    
-    grupos.forEach(grupo => {
-        // Para panel de información
-        const grupoItem = document.createElement('div');
-        grupoItem.className = 'grupo-item';
-        grupoItem.innerHTML = `
-            <strong>${grupo.nombre.split(':')[0]}</strong><br>
-            <small>${grupo.nombre.split(':')[1]}</small>
-        `;
-        grupoItem.style.borderLeft = `3px solid ${grupo.color}`;
-        gruposInfo.appendChild(grupoItem);
-        
-        // Para selector de reemplazo
-        const grupoBtn = document.createElement('button');
-        grupoBtn.className = 'btn btn-secondary btn-sm';
-        grupoBtn.innerHTML = `${grupo.id}`;
-        grupoBtn.title = grupo.nombre;
-        grupoBtn.onclick = () => cargarAlimentosGrupo(grupo.id, grupo.nombre);
-        gruposSelector.appendChild(grupoBtn);
-    });
-}
-
-function mostrarSustituciones() {
-    const sustitucionesList = document.getElementById('sustitucionesList');
-    sustitucionesList.innerHTML = `
-        <li><i class="fas fa-exchange-alt"></i> 1 porción de Grupo 2 + 1 porción de Grupo 3</li>
-        <li><i class="fas fa-exchange-alt"></i> 1 porción de Grupo 2 + 1 porción de Grupo 4</li>
-    `;
-}
-
-function cargarEstadisticas() {
-    fetch('/api/estadisticas')
-        .then(response => response.json())
-        .then(stats => {
-            const statsGrid = document.getElementById('statsGrid');
-            statsGrid.innerHTML = `
-                <div class="stat-card">
-                    <i class="fas fa-apple-alt"></i>
-                    <div class="stat-value">${stats.total_comidas}</div>
-                    <div class="stat-label">Alimentos Disponibles</div>
-                </div>
-                <div class="stat-card">
-                    <i class="fas fa-layer-group"></i>
-                    <div class="stat-value">${stats.total_grupos}</div>
-                    <div class="stat-label">Grupos Alimenticios</div>
-                </div>
-                <div class="stat-card">
-                    <i class="fas fa-clock"></i>
-                    <div class="stat-value">${stats.total_tiempos}</div>
-                    <div class="stat-label">Tiempos de Comida</div>
-                </div>
-                <div class="stat-card">
-                    <i class="fas fa-exchange-alt"></i>
-                    <div class="stat-value">${stats.total_sustituciones}</div>
-                    <div class="stat-label">Sustituciones</div>
-                </div>
-            `;
-        })
-        .catch(error => {
-            console.error('Error cargando estadísticas:', error);
-        });
-}
-
-function setupEventListeners() {
-    // Botón Generar Plato
-    document.getElementById('btnGenerar').addEventListener('click', generarPlato);
-    
-    // Botón Tiempo Aleatorio
-    document.getElementById('btnAleatorio').addEventListener('click', generarPlatoAleatorio);
-    
-    // Botón Reemplazar Alimentos
-    document.getElementById('btnReemplazar').addEventListener('click', mostrarPanelReemplazo);
-    
-    // Botón Cancelar Reemplazo
-    document.getElementById('btnCancelarReemplazo').addEventListener('click', ocultarPanelReemplazo);
-    
-    // Botón Seleccionar Alimento
-    document.getElementById('btnSeleccionarAlimento').addEventListener('click', seleccionarAlimento);
-    
-    // Botón Aleatorio del Grupo
-    document.getElementById('btnAleatorioGrupo').addEventListener('click', seleccionarAlimentoAleatorio);
-    
-    // Modal
-    document.querySelector('.close-modal').addEventListener('click', cerrarModal);
-    document.getElementById('btnCerrarModal').addEventListener('click', cerrarModal);
-    document.getElementById('btnUsarEste').addEventListener('click', usarAlimentoModal);
-    
-    // Cerrar modal al hacer clic fuera
-    window.addEventListener('click', function(event) {
-        const modal = document.getElementById('alimentoModal');
-        if (event.target === modal) {
-            cerrarModal();
-        }
-    });
-}
-
-function generarPlato() {
-    tiempoActual = document.getElementById('tiempoComida').value;
-    
-    console.log(`🍽️ Generando plato para tiempo: ${tiempoActual}`);
-    
-    fetch(`/api/plato/generar?tiempo=${tiempoActual}`)
-        .then(response => response.json())
-        .then(data => {
-            platoActual = data;
-            mostrarPlato(data);
-        })
-        .catch(error => {
-            console.error('Error generando plato:', error);
-            alert('Error al generar el plato. Por favor, intenta de nuevo.');
-        });
-}
-
-function generarPlatoAleatorio() {
-    console.log('🎲 Generando plato con tiempo aleatorio');
-    
-    fetch('/api/plato/aleatorio')
-        .then(response => response.json())
-        .then(data => {
-            platoActual = data;
-            tiempoActual = data.tiempo_id;
-            document.getElementById('tiempoComida').value = tiempoActual;
-            mostrarPlato(data);
-        })
-        .catch(error => {
-            console.error('Error generando plato aleatorio:', error);
-            alert('Error al generar el plato aleatorio.');
-        });
-}
-
-function mostrarPlato(platoData) {
-    const platoContainer = document.getElementById('platoContainer');
-    const tiempoInfo = document.getElementById('tiempoInfo');
-    
-    // Actualizar información del tiempo
-    tiempoInfo.innerHTML = `<h3>${platoData.tiempo_comida}</h3>`;
-    
-    // Mostrar alimentos del plato
-    platoContainer.innerHTML = '';
-    
-    platoData.plato.forEach((alimento, index) => {
-        const alimentoCard = document.createElement('div');
-        alimentoCard.className = `alimento-card ${alimento.es_sustitucion ? 'sustitucion' : ''}`;
-        
-        let sustituyeInfo = '';
-        if (alimento.es_sustitucion) {
-            sustituyeInfo = `<div class="sustitucion-badge">Sustituye a ${alimento.sustituye_a}</div>`;
-        }
-        
-        alimentoCard.innerHTML = `
-            <div class="alimento-info">
-                <h4>${alimento.alimento}</h4>
-                <p class="alimento-desc">${alimento.porcion}</p>
-            </div>
-            <div class="alimento-meta">
-                <span class="alimento-grupo">${alimento.grupo}</span>
-                <span class="alimento-porcion">${alimento.porcion}</span>
-                ${sustituyeInfo}
-            </div>
-        `;
-        
-        // Agregar evento de clic para ver detalles
-        alimentoCard.addEventListener('click', () => mostrarDetalleAlimento(alimento, index));
-        
-        platoContainer.appendChild(alimentoCard);
-    });
-    
-    // Agregar contador
-    const contador = document.createElement('div');
-    contador.className = 'plato-contador';
-    contador.innerHTML = `<p><strong>Total:</strong> ${platoData.total_alimentos} alimentos en este plato</p>`;
-    platoContainer.appendChild(contador);
-}
-
-function mostrarDetalleAlimento(alimento, index) {
-    const modal = document.getElementById('alimentoModal');
-    const modalTitle = document.getElementById('modalTitle');
-    const modalBody = document.getElementById('modalBody');
-    
-    let sustituyeInfo = '';
-    if (alimento.es_sustitucion) {
-        sustituyeInfo = `<p><strong><i class="fas fa-exchange-alt"></i> Sustituye a:</strong> ${alimento.sustituye_a}</p>`;
-    }
-    
-    modalTitle.textContent = alimento.alimento;
-    modalBody.innerHTML = `
-        <div class="detalle-alimento">
-            <p><strong><i class="fas fa-layer-group"></i> Grupo:</strong> ${alimento.grupo}</p>
-            <p><strong><i class="fas fa-balance-scale"></i> Porción:</strong> ${alimento.porcion}</p>
-            ${sustituyeInfo}
-            <p><strong><i class="fas fa-info-circle"></i> Información:</strong> Este alimento es parte de una dieta balanceada de 1500 calorías.</p>
-        </div>
-    `;
-    
-    // Configurar botón "Usar este alimento"
-    const btnUsarEste = document.getElementById('btnUsarEste');
-    btnUsarEste.dataset.index = index;
-    
-    modal.style.display = 'block';
-}
-
-function cerrarModal() {
-    document.getElementById('alimentoModal').style.display = 'none';
-}
-
-function usarAlimentoModal() {
-    const index = document.getElementById('btnUsarEste').dataset.index;
-    alert(`Has seleccionado: ${platoActual.plato[index].alimento}`);
-    cerrarModal();
-}
-
-function mostrarPanelReemplazo() {
-    if (!platoActual) {
-        alert('Primero genera un plato para poder reemplazar alimentos.');
-        return;
-    }
-    
-    document.getElementById('reemplazoPanel').style.display = 'block';
-    document.getElementById('platoContainer').style.display = 'none';
-}
-
-function ocultarPanelReemplazo() {
-    document.getElementById('reemplazoPanel').style.display = 'none';
-    document.getElementById('platoContainer').style.display = 'block';
-}
-
-function cargarAlimentosGrupo(grupoId, grupoNombre) {
-    grupoSeleccionado = grupoId;
-    
-    fetch(`/api/grupos/${grupoId}/comidas`)
-        .then(response => response.json())
-        .then(alimentos => {
-            alimentosPorGrupo[grupoId] = alimentos;
-            mostrarAlimentosGrupo(alimentos, grupoNombre);
-        })
-        .catch(error => {
-            console.error('Error cargando alimentos del grupo:', error);
-            alert('Error al cargar los alimentos del grupo.');
-        });
-}
-
-function mostrarAlimentosGrupo(alimentos, grupoNombre) {
-    const alimentosList = document.getElementById('alimentosList');
-    alimentosList.innerHTML = '';
-    
-    // Título
-    const titulo = document.createElement('div');
-    titulo.className = 'alimento-item titulo';
-    titulo.innerHTML = `<strong>${grupoNombre} - ${alimentos.length} alimentos disponibles</strong>`;
-    alimentosList.appendChild(titulo);
-    
-    // Lista de alimentos
-    alimentos.forEach((alimento, index) => {
-        const alimentoItem = document.createElement('div');
-        alimentoItem.className = 'alimento-item';
-        alimentoItem.textContent = alimento;
-        alimentoItem.dataset.index = index;
-        
-        alimentoItem.addEventListener('click', function() {
-            // Remover selección previa
-            document.querySelectorAll('.alimento-item').forEach(item => {
-                item.classList.remove('selected');
-            });
-            
-            // Seleccionar este
-            this.classList.add('selected');
-            alimentoSeleccionado = alimento;
-        });
-        
-        alimentosList.appendChild(alimentoItem);
-    });
-}
-
-function seleccionarAlimento() {
-    if (!alimentoSeleccionado) {
-        alert('Por favor, selecciona un alimento de la lista.');
-        return;
-    }
-    
-    if (!grupoSeleccionado) {
-        alert('Por favor, selecciona un grupo primero.');
-        return;
-    }
-    
-    // Aquí implementarías la lógica para reemplazar el alimento en el plato actual
-    alert(`Has seleccionado: ${alimentoSeleccionado}\n\nEsta funcionalidad completa requeriría modificar el plato actual en el servidor.`);
-    
-    // Ocultar panel de reemplazo
-    ocultarPanelReemplazo();
-}
-
-function seleccionarAlimentoAleatorio() {
-    if (!grupoSeleccionado || !alimentosPorGrupo[grupoSeleccionado]) {
-        alert('Por favor, selecciona un grupo primero.');
-        return;
-    }
-    
-    const alimentos = alimentosPorGrupo[grupoSeleccionado];
-    const alimentoAleatorio = alimentos[Math.floor(Math.random() * alimentos.length)];
-    
-    // Seleccionar aleatoriamente
-    document.querySelectorAll('.alimento-item').forEach(item => {
-        item.classList.remove('selected');
-    });
-    
-    // Encontrar y seleccionar el elemento correspondiente
-    const items = document.querySelectorAll('.alimento-item');
-    for (let item of items) {
-        if (item.textContent === alimentoAleatorio) {
-            item.classList.add('selected');
-            break;
+            }
+        } else {
+            const alimento = getAlimentoAleatorio(porcion.grupo_id);
+            if (alimento) {
+                const grupo = grupos.find(g => g.id === porcion.grupo_id);
+                const porcionTexto = porcion.porciones === 1 ? '1 porción' : 
+                                    porcion.porciones === 2 ? '2 porciones' : 
+                                    porcion.porciones === 3 ? '3 porciones' : 'Porción';
+                
+                plato.push({
+                    grupo: grupo.nombre,
+                    alimento: alimento,
+                    porcion: porcionTexto,
+                    es_sustitucion: false
+                });
+            }
         }
     }
     
-    alimentoSeleccionado = alimentoAleatorio;
-    alert(`Seleccionado aleatoriamente: ${alimentoAleatorio}`);
-}
-
-// ============================================
-// SISTEMA DE REEMPLAZO MEJORADO
-// ============================================
-
-let alimentoAReemplazar = null;
-let indiceAReemplazar = null;
-
-// Función mejorada para mostrar panel de reemplazo
-function mostrarPanelReemplazoMejorado(alimentoIndex) {
-    if (!platoActual) {
-        alert('Primero genera un plato para poder reemplazar alimentos.');
-        return;
-    }
-    
-    // Guardar qué alimento vamos a reemplazar
-    indiceAReemplazar = alimentoIndex;
-    alimentoAReemplazar = platoActual.plato[alimentoIndex];
-    
-    // Mostrar información del alimento actual
-    const alimentoActual = platoActual.plato[alimentoIndex];
-    const mensaje = `Vas a reemplazar: "${alimentoActual.alimento}"\nGrupo: ${alimentoActual.grupo}`;
-    
-    // Extraer ID del grupo del alimento actual
-    const grupoId = parseInt(alimentoActual.grupo.split(':')[0].replace('Grupo ', ''));
-    
-    // Cargar alimentos de ese grupo
-    cargarAlimentosGrupo(grupoId, alimentoActual.grupo);
-    
-    // Cambiar interfaz
-    document.getElementById('reemplazoPanel').style.display = 'block';
-    document.getElementById('platoContainer').style.opacity = '0.5';
-    document.getElementById('btnReemplazar').disabled = true;
-    
-    // Mostrar mensaje informativo
-    const alimentosList = document.getElementById('alimentosList');
-    const infoDiv = document.createElement('div');
-    infoDiv.className = 'alimento-info-actual';
-    infoDiv.innerHTML = `
-        <div style="background: #fff3cd; padding: 10px; border-radius: 5px; margin-bottom: 10px;">
-            <strong><i class="fas fa-info-circle"></i> Reemplazando:</strong><br>
-            "${alimentoActual.alimento}"<br>
-            <small>${alimentoActual.grupo} - ${alimentoActual.porcion}</small>
-        </div>
-    `;
-    alimentosList.insertBefore(infoDiv, alimentosList.firstChild);
-}
-
-// Función mejorada para seleccionar alimento de reemplazo
-function seleccionarAlimentoMejorado() {
-    if (!alimentoSeleccionado) {
-        alert('Por favor, selecciona un alimento de la lista.');
-        return;
-    }
-    
-    if (!grupoSeleccionado) {
-        alert('Por favor, selecciona un grupo primero.');
-        return;
-    }
-    
-    if (indiceAReemplazar === null) {
-        alert('Error: No se especificó qué alimento reemplazar.');
-        return;
-    }
-    
-    // Actualizar el plato con el nuevo alimento
-    platoActual.plato[indiceAReemplazar].alimento = alimentoSeleccionado;
-    platoActual.plato[indiceAReemplazar].reemplazado = true;
-    platoActual.plato[indiceAReemplazar].reemplazado_el = new Date().toLocaleTimeString();
-    
-    // Actualizar la vista
-    mostrarPlato(platoActual);
-    
-    // Mostrar confirmación
-    alert(`✅ Alimento reemplazado correctamente!\n\nNuevo: ${alimentoSeleccionado}`);
-    
-    // Ocultar panel de reemplazo
-    ocultarPanelReemplazoMejorado();
-    
-    // Resetear variables
-    alimentoAReemplazar = null;
-    indiceAReemplazar = null;
-}
-
-// Función mejorada para ocultar panel
-function ocultarPanelReemplazoMejorado() {
-    document.getElementById('reemplazoPanel').style.display = 'none';
-    document.getElementById('platoContainer').style.opacity = '1';
-    document.getElementById('btnReemplazar').disabled = false;
-    
-    // Limpiar selección
-    alimentoSeleccionado = null;
-    grupoSeleccionado = null;
-    
-    // Limpiar lista
-    document.getElementById('alimentosList').innerHTML = '';
-}
-
-// Función para agregar botón de reemplazo a cada alimento
-function agregarBotonReemplazo(alimentoCard, alimento, index) {
-    const botonReemplazar = document.createElement('button');
-    botonReemplazar.className = 'btn-reemplazar-item';
-    botonReemplazar.innerHTML = '<i class="fas fa-sync-alt"></i> Cambiar';
-    botonReemplazar.style.cssText = `
-        background: #f39c12;
-        color: white;
-        border: none;
-        padding: 5px 10px;
-        border-radius: 4px;
-        cursor: pointer;
-        font-size: 0.8rem;
-        margin-left: 10px;
-    `;
-    
-    botonReemplazar.onclick = (e) => {
-        e.stopPropagation(); // Evitar que se active el clic del card
-        mostrarPanelReemplazoMejorado(index);
+    console.log(`✅ Plato generado con ${plato.length} alimentos`);
+    return {
+        tiempo_comida: tiempo.nombre,
+        plato: plato,
+        total_alimentos: plato.length,
+        tiempo_id: tiempoId
     };
-    
-    // Agregar botón al card del alimento
-    const alimentoMeta = alimentoCard.querySelector('.alimento-meta');
-    alimentoMeta.appendChild(botonReemplazar);
 }
 
-// Modificar la función mostrarPlato para incluir botones
-function mostrarPlato(platoData) {
-    const platoContainer = document.getElementById('platoContainer');
-    const tiempoInfo = document.getElementById('tiempoInfo');
-    
-    // Actualizar información del tiempo
-    tiempoInfo.innerHTML = `<h3>${platoData.tiempo_comida}</h3>`;
-    
-    // Mostrar alimentos del plato
-    platoContainer.innerHTML = '';
-    
-    platoData.plato.forEach((alimento, index) => {
-        const alimentoCard = document.createElement('div');
-        alimentoCard.className = `alimento-card ${alimento.es_sustitucion ? 'sustitucion' : ''} ${alimento.reemplazado ? 'reemplazado' : ''}`;
-        
-        let sustituyeInfo = '';
-        if (alimento.es_sustitucion) {
-            sustituyeInfo = `<div class="sustitucion-badge">Sustituye ${alimento.sustituye_a || 'Lácteos'}</div>`;
-        }
-        
-        let reemplazadoBadge = '';
-        if (alimento.reemplazado) {
-            reemplazadoBadge = `<span class="reemplazado-badge" title="Reemplazado a las ${alimento.reemplazado_el}"><i class="fas fa-exchange-alt"></i> Cambiado</span>`;
-        }
-        
-        alimentoCard.innerHTML = `
-            <div class="alimento-info">
-                <h4>${alimento.alimento}</h4>
-                <p class="alimento-desc">${alimento.porcion}</p>
-            </div>
-            <div class="alimento-meta">
-                <span class="alimento-grupo">${alimento.grupo}</span>
-                <span class="alimento-porcion">${alimento.porcion}</span>
-                ${sustituyeInfo}
-                ${reemplazadoBadge}
-            </div>
-        `;
-        
-        // Agregar evento de clic para ver detalles
-        alimentoCard.addEventListener('click', () => mostrarDetalleAlimento(alimento, index));
-        
-        // Agregar botón de reemplazo (excepto para sustituciones dobles)
-        if (!alimento.es_sustitucion || alimento.tipo_sustitucion) {
-            agregarBotonReemplazo(alimentoCard, alimento, index);
-        }
-        
-        platoContainer.appendChild(alimentoCard);
-    });
-    
-    // Agregar contador
-    const contador = document.createElement('div');
-    contador.className = 'plato-contador';
-    
-    // Contar lácteos vs sustituciones
-    const totalLacteos = platoData.plato.filter(a => a.grupo.includes('Grupo 1')).length;
-    const totalSustituciones = platoData.plato.filter(a => a.es_sustitucion).length / 2; // Cada sustitución son 2 items
-    
-    contador.innerHTML = `
-        <p><strong>Total:</strong> ${platoData.total_alimentos} alimentos</p>
-        <p><small>Lácteos directos: ${totalLacteos} | Sustituciones: ${totalSustituciones}</small></p>
-        ${platoData.plato.some(a => a.reemplazado) ? '<p><small><i class="fas fa-info-circle"></i> Algunos alimentos han sido reemplazados</small></p>' : ''}
-    `;
-    platoContainer.appendChild(contador);
-}
+// Rutas API
+app.get('/api/tiempos', (req, res) => {
+    console.log(`[API] GET /api/tiempos`);
+    res.json(tiempos);
+});
 
-// Actualizar los event listeners en setupEventListeners
-function setupEventListeners() {
-    // ... (tus listeners existentes)
+app.get('/api/plato/generar', (req, res) => {
+    const tiempoId = parseInt(req.query.tiempo) || 1;
+    console.log(`[API] GET /api/plato/generar?tiempo=${tiempoId}`);
     
-    // Botón Reemplazar Alimentos (global)
-    document.getElementById('btnReemplazar').addEventListener('click', function() {
-        if (!platoActual) {
-            alert('Primero genera un plato para poder reemplazar alimentos.');
-            return;
-        }
-        
-        // Crear lista de alimentos para reemplazar
-        const alimentosList = document.getElementById('alimentosList');
-        alimentosList.innerHTML = '<div class="seleccionar-alimento">Selecciona un alimento del plato para reemplazar:</div>';
-        
-        platoActual.plato.forEach((alimento, index) => {
-            const item = document.createElement('div');
-            item.className = 'alimento-seleccionable';
-            item.innerHTML = `
-                <strong>${alimento.alimento}</strong><br>
-                <small>${alimento.grupo} - ${alimento.porcion}</small>
-            `;
-            item.onclick = () => mostrarPanelReemplazoMejorado(index);
-            alimentosList.appendChild(item);
-        });
-        
-        document.getElementById('reemplazoPanel').style.display = 'block';
-        document.getElementById('platoContainer').style.opacity = '0.5';
+    if (tiempoId < 1 || tiempoId > 3) {
+        return res.status(400).json({ error: 'Tiempo debe ser 1, 2 o 3' });
+    }
+    
+    const plato = generarPlato(tiempoId);
+    res.json(plato);
+});
+
+app.get('/api/plato/aleatorio', (req, res) => {
+    const tiempoId = Math.floor(Math.random() * 3) + 1;
+    console.log(`[API] GET /api/plato/aleatorio - Tiempo aleatorio: ${tiempoId}`);
+    const plato = generarPlato(tiempoId);
+    res.json(plato);
+});
+
+app.get('/api/estadisticas', (req, res) => {
+    console.log(`[API] GET /api/estadisticas`);
+    const totalComidas = Object.values(comidas).reduce((acc, arr) => acc + arr.length, 0);
+    const stats = {
+        total_comidas: totalComidas,
+        total_grupos: grupos.length,
+        total_tiempos: tiempos.length,
+        total_sustituciones: sustituciones.length
+    };
+    res.json(stats);
+});
+
+// Ruta para verificar el servidor
+app.get('/api/health', (req, res) => {
+    console.log(`[API] GET /api/health`);
+    res.json({ 
+        status: 'ok', 
+        message: 'Servidor funcionando correctamente',
+        timestamp: new Date().toISOString()
     });
+});
+
+// Ruta para ver datos de grupos
+app.get('/api/grupos/:id/comidas', (req, res) => {
+    const grupoId = parseInt(req.params.id);
+    console.log(`[API] GET /api/grupos/${grupoId}/comidas`);
     
-    // Botón Cancelar Reemplazo
-    document.getElementById('btnCancelarReemplazo').addEventListener('click', ocultarPanelReemplazoMejorado);
+    if (grupoId < 1 || grupoId > 6) {
+        return res.status(400).json({ error: 'ID de grupo inválido' });
+    }
     
-    // Botón Seleccionar Alimento
-    document.getElementById('btnSeleccionarAlimento').addEventListener('click', seleccionarAlimentoMejorado);
-    
-    // ... (otros listeners)
-}
+    const alimentos = comidas[grupoId] || [];
+    res.json(alimentos);
+});
+
+// Ruta principal - debe ir DESPUÉS de las rutas API
+app.get('/', (req, res) => {
+    console.log(`[WEB] GET / - Sirviendo página principal`);
+    res.sendFile(path.join(__dirname, '..', '..', 'frontend', 'index.html'));
+});
+
+// Ruta para cualquier otra petición - SIMPLIFICADA
+app.get('*', (req, res) => {
+    console.log(`[WEB] Ruta no encontrada: ${req.url}`);
+    res.sendFile(path.join(__dirname, '..', '..', 'frontend', 'index.html'));
+});
+
+// Manejo de errores
+app.use((err, req, res, next) => {
+    console.error(`❌ ERROR:`, err.message);
+    console.error(err.stack);
+    res.status(500).json({ 
+        error: 'Error interno del servidor',
+        message: err.message 
+    });
+});
+
+// Iniciar servidor
+app.listen(PORT, () => {
+    console.log(`=========================================`);
+    console.log(`✅ SERVIDOR INICIADO CORRECTAMENTE`);
+    console.log(`=========================================`);
+    console.log(`🌐 URL: http://localhost:${PORT}`);
+    console.log(`📊 Puerto: ${PORT}`);
+    console.log(`=========================================`);
+    console.log(`📦 DATOS CARGADOS:`);
+    console.log(`   🍎 Total comidas: ${Object.values(comidas).reduce((acc, arr) => acc + arr.length, 0)}`);
+    console.log(`   📋 Grupos alimenticios: ${grupos.length}`);
+    console.log(`   ⏰ Tiempos de comida: ${tiempos.length}`);
+    console.log(`   🔄 Reglas de sustitución: ${sustituciones.length}`);
+    console.log(`=========================================`);
+    console.log(`🍽️  ENDPOINTS DISPONIBLES:`);
+    console.log(`   GET  /                    → Página principal`);
+    console.log(`   GET  /api/health          → Estado del servidor`);
+    console.log(`   GET  /api/tiempos         → Lista de tiempos`);
+    console.log(`   GET  /api/plato/generar   → Generar plato (tiempo=1,2,3)`);
+    console.log(`   GET  /api/plato/aleatorio → Plato con tiempo aleatorio`);
+    console.log(`   GET  /api/estadisticas    → Estadísticas del sistema`);
+    console.log(`   GET  /api/grupos/:id/comidas → Comidas por grupo`);
+    console.log(`=========================================`);
+    console.log(`🚀 Para usar:`);
+    console.log(`   1. Abre: http://localhost:${PORT}`);
+    console.log(`   2. Selecciona un tiempo de comida`);
+    console.log(`   3. Haz clic en "Generar Plato"`);
+    console.log(`   4. ¡Listo!`);
+    console.log(`=========================================\n`);
+});
+
+// Manejar cierre del servidor
+process.on('SIGINT', () => {
+    console.log('\n\n🔴 Recibida señal SIGINT. Cerrando servidor...');
+    process.exit(0);
+});
