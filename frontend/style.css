@@ -642,3 +642,54 @@ body {
         font-size: 0.9rem;
     }
 }
+/* Estilos adicionales críticos */
+.plato-contador {
+    background: #e3f2fd;
+    padding: 15px;
+    border-radius: 8px;
+    text-align: center;
+    margin-top: 20px;
+    border-left: 4px solid #3498db;
+}
+
+.detalle-alimento {
+    background: #f8f9fa;
+    padding: 20px;
+    border-radius: 10px;
+}
+
+.detalle-alimento p {
+    margin-bottom: 10px;
+    padding-bottom: 10px;
+    border-bottom: 1px solid #dee2e6;
+}
+
+.detalle-alimento p:last-child {
+    border-bottom: none;
+}
+
+.btn-sm {
+    padding: 8px 12px !important;
+    font-size: 0.9rem !important;
+}
+
+/* Estilos para el estado de conexión */
+.online {
+    color: #27ae60 !important;
+}
+
+.offline {
+    color: #e74c3c !important;
+}
+
+/* Mejoras para mobile */
+@media (max-width: 768px) {
+    .config-panel, .result-panel {
+        padding: 15px !important;
+    }
+    
+    .btn {
+        padding: 12px 15px !important;
+        font-size: 0.9rem !important;
+    }
+}
