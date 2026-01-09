@@ -288,7 +288,11 @@ function generarPlato(tiempoId) {
 
 // Configurar Express
 app.use(express.json());
-app.use(express.static(path.join(__dirname, '../frontend')));
+
+// IMPORTANTE: CORREGIR RUTA DE ARCHIVOS ESTÁTICOS
+// Para estructura: platos-app-desktop/backend/src/server.js
+// frontend está en: platos-app-desktop/frontend/
+app.use(express.static(path.join(__dirname, '..', '..', 'frontend')));
 
 // Configurar CORS para permitir todas las solicitudes
 app.use((req, res, next) => {
@@ -363,10 +367,11 @@ app.get('/api/grupos/:id/comidas', (req, res) => {
     res.json(alimentos);
 });
 
-// Ruta principal
+// Ruta principal - SERVIR index.html DESDE LA UBICACIÓN CORRECTA
 app.get('/', (req, res) => {
     console.log(`🏠 GET / - Sirviendo página principal`);
-    res.sendFile(path.join(__dirname, '../frontend/index.html'));
+    console.log(`🔍 Buscando index.html en: ${path.join(__dirname, '..', '..', 'frontend', 'index.html')}`);
+    res.sendFile(path.join(__dirname, '..', '..', 'frontend', 'index.html'));
 });
 
 // Ruta para cualquier otra petición
@@ -427,6 +432,13 @@ app.listen(PORT, () => {
         console.log(`     Porciones: ${s.porciones.join(', ')}`);
     });
     console.log(`\n`);
+    
+    // Información adicional de rutas
+    console.log(`📂 CONFIGURACIÓN DE RUTAS:`);
+    console.log(`   Ubicación servidor: ${__dirname}`);
+    console.log(`   Ruta frontend: ${path.join(__dirname, '..', '..', 'frontend')}`);
+    console.log(`   Ruta index.html: ${path.join(__dirname, '..', '..', 'frontend', 'index.html')}`);
+    console.log(`=========================================\n`);
 });
 
 // Manejar cierre del servidor
