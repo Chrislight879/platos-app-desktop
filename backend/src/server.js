@@ -352,16 +352,21 @@ app.get('/', (req, res) => {
     res.sendFile(path.join(__dirname, '..', '..', 'frontend', 'index.html'));
 });
 
-// Ruta para cualquier otra petición
+// Ruta para cualquier otra petición - CORREGIDA
 app.get('*', (req, res) => {
-    console.log(`[WEB] GET ${req.url} - Archivo no encontrado`);
-    res.status(404).sendFile(path.join(__dirname, '..', '..', 'frontend', 'index.html'));
+    console.log(`[WEB] Ruta no encontrada: ${req.url}`);
+    // En lugar de redirigir, envía el index.html para que Vue/React lo maneje
+    res.sendFile(path.join(__dirname, '..', '..', 'frontend', 'index.html'));
 });
 
 // Manejo de errores
 app.use((err, req, res, next) => {
-    console.error(`❌ ERROR:`, err.stack);
-    res.status(500).json({ error: 'Error interno del servidor' });
+    console.error(`❌ ERROR:`, err.message);
+    console.error(err.stack);
+    res.status(500).json({ 
+        error: 'Error interno del servidor',
+        message: err.message 
+    });
 });
 
 // Iniciar servidor
@@ -377,6 +382,15 @@ app.listen(PORT, () => {
     console.log(`   📋 Grupos alimenticios: ${grupos.length}`);
     console.log(`   ⏰ Tiempos de comida: ${tiempos.length}`);
     console.log(`   🔄 Reglas de sustitución: ${sustituciones.length}`);
+    console.log(`=========================================`);
+    console.log(`🍽️  ENDPOINTS DISPONIBLES:`);
+    console.log(`   GET  /                    → Página principal`);
+    console.log(`   GET  /api/health          → Estado del servidor`);
+    console.log(`   GET  /api/tiempos         → Lista de tiempos`);
+    console.log(`   GET  /api/plato/generar   → Generar plato (tiempo=1,2,3)`);
+    console.log(`   GET  /api/plato/aleatorio → Plato con tiempo aleatorio`);
+    console.log(`   GET  /api/estadisticas    → Estadísticas del sistema`);
+    console.log(`   GET  /api/grupos/:id/comidas → Comidas por grupo`);
     console.log(`=========================================`);
     console.log(`🚀 Para usar:`);
     console.log(`   1. Abre: http://localhost:${PORT}`);
